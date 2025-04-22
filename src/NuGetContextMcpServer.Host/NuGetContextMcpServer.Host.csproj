@@ -10,8 +10,8 @@
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.4" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.4" /> <!-- Added explicitly for IHostedService -->
     <PackageReference Include="ModelContextProtocol" Version="0.1.0-preview.10" /> <!-- Added for MCP Hosting Extensions -->
-    <PackageReference Include="Serilog.AspNetCore" Version="8.0.1" /> <!-- Added Serilog -->
-    <PackageReference Include="Serilog.Sinks.File" Version="5.0.0" /> <!-- Added Serilog File Sink -->
+    <PackageReference Include="Serilog.AspNetCore" Version="9.0.0" /> <!-- Added Serilog -->
+    <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" /> <!-- Added Serilog File Sink -->
   </ItemGroup>
 
   <ItemGroup>

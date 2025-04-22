@@ -36,7 +36,7 @@ try // Add top-level try-catch for startup errors
         .Enrich.FromLogContext()
         // Explicitly add file sink here as well to ensure it's configured
         .WriteTo.File(
-            "log-.txt", // Use the same path as in appsettings
+            "log-.log", // Use .log extension
             rollingInterval: RollingInterval.Day, // Use the same rolling interval
             outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}", // Use the same template
             retainedFileCountLimit: 7, // Use the same retention

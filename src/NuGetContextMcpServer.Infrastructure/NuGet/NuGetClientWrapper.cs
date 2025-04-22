@@ -37,12 +37,12 @@ public class NuGetClientWrapper : INuGetQueryService
         _settings = nugetSettings.Value;
         _cacheSettings = cacheSettings.Value;
         _cacheService = cacheService;
-        _logger = logger;
-
+        _logger = logger; // Assign logger first
+    
         // NuGet's SourceCacheContext helps with its internal HTTP caching etc.
         // Dispose this context? Seems okay to keep it for the service lifetime.
         _sourceCacheContext = new SourceCacheContext { NoCache = false }; // Enable NuGet's internal caching
-
+    
         _repository = CreateSourceRepository();
     }
 

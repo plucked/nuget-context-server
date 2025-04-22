@@ -17,6 +17,42 @@ The server is built using a layered architecture with the **.NET Generic Host** 
 *   **Application Layer:** Contains service interfaces and orchestration logic.
 *   **Infrastructure Layer:** Implements concrete details for parsing (using `Microsoft.Build`), NuGet interaction (using `NuGet.Protocol`), caching (using `Microsoft.Data.Sqlite`), and defines the MCP tools.
 
+## Installation (Roocode)
+
+To use this MCP server with Roocode:
+
+1.  **Build the Server:** Ensure the .NET SDK (version specified in `global.json` or latest compatible) is installed. Build the server application by running the following command in the repository root:
+   ```bash
+   dotnet build
+   ```
+
+2.  **Configure Roocode:** Create or edit the project-level MCP configuration file at `.roo/mcp.json` in your workspace root. Add the following server configuration:
+
+   ```json
+   {
+     "mcpServers": {
+       "nuget-context": {
+         "command": "dotnet",
+         "args": [
+           "run",
+           "--project",
+           "src/NuGetContextMcpServer.Host/NuGetContextMcpServer.Host.csproj",
+           "--", // Separates dotnet run arguments from application arguments
+           "--transport", // Specify the MCP transport mechanism
+           "stdio"        // Use standard input/output for local communication
+         ],
+         "cwd": ".", // Ensure the command runs from the repository root
+         "disabled": false // Ensure the server is enabled
+       }
+       // Add other MCP server configurations here if needed
+     }
+   }
+   ```
+   *   **Note:** This configuration assumes the server application (`NuGetContextMcpServer.Host`) accepts `--transport stdio` command-line arguments. If the server defaults to or only supports STDIO, these arguments might be removable.
+   *   The `cwd` value assumes Roocode is opened with this repository as the root workspace folder.
+
+3.  **Restart Roocode/VS Code:** After saving the `.roo/mcp.json` file, restart VS Code or reload the window to ensure Roocode picks up the new configuration. Roocode should then automatically start the server process when needed.
+
 ## Research (`deep-research/`)
 
 This folder contains the initial research documents that informed the technical blueprint and design decisions:

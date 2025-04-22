@@ -209,4 +209,64 @@ public class NuGetClientWrapperTests
 
     // Test for CreateSourceRepository_WithCredentials is also complex due to static methods
     // and internal implementation details of NuGet SDK. Skipping for focused unit tests.
+
+    [Test]
+    [Category("Integration")] // Mark as integration test hitting live API
+    [Description("Tests searching against the live nuget.org API.")]
+    public async Task SearchPackagesAsync_LiveApi_ReturnsResultsForKnownPackage()
+    {
+        // Arrange
+        var searchTerm = "Newtonsoft.Json";
+        var includePrerelease = false;
+        var skip = 0;
+        var take = 1;
+        var cancellationToken = CancellationToken.None;
+
+        // Use real settings pointing to nuget.org
+        var liveNuGetSettings = Options.Create(new NuGetSettings { QueryFeedUrl = "https://api.nuget.org/v3/index.json" });
+        var mockCacheSettings = Options.Create(new CacheSettings { DefaultExpirationMinutes = 1 }); // Short expiration for test
+        var mockCacheService = new Mock<ICacheService>();
+        var mockLogger = new Mock<ILogger<NuGetClientWrapper>>();
+
+        // Setup cache to always miss for this integration test
+        mockCacheService.Setup(c => c.GetAsync<List<PackageSearchResult>>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                        .ReturnsAsync((List<PackageSearchResult>?)null);
+
+        // Instantiate the wrapper with live settings and mock cache/logger
+        // This will create a real SourceRepository internally
+        var liveWrapper = new NuGetClientWrapper(liveNuGetSettings, mockCacheSettings, mockCacheService.Object, mockLogger.Object);
+
+        // Act
+        IEnumerable<PackageSearchResult>? results = null;
+        try
+        {
+            results = await liveWrapper.SearchPackagesAsync(searchTerm, includePrerelease, skip, take, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            // Fail the test if any exception occurs during the live API call
+            Assert.Fail($"Live API call failed unexpectedly: {ex}");
+        }
+
+
+        // Assert
+        Assert.That(results, Is.Not.Null, "Results should not be null.");
+        Assert.That(results.Any(), Is.True, "Results should not be empty for Newtonsoft.Json.");
+
+        var firstResult = results.FirstOrDefault();
+        Assert.That(firstResult, Is.Not.Null, "First result should not be null.");
+        // Use correct property 'Id' and case-insensitive comparison
+        Assert.That(firstResult?.Id, Is.EqualTo(searchTerm).IgnoreCase, $"First result package ID should be '{searchTerm}'.");
+
+        // Verify cache was checked (GetAsync) and potentially set (SetAsync)
+        mockCacheService.Verify(c => c.GetAsync<List<PackageSearchResult>>(It.Is<string>(s => s.Contains(searchTerm.ToLowerInvariant())), cancellationToken), Times.Once);
+        // Verify SetAsync was called because GetAsync returned null
+        mockCacheService.Verify(c => c.SetAsync(
+            It.Is<string>(s => s.Contains(searchTerm.ToLowerInvariant())),
+            // Use correct property 'Id'
+            It.Is<List<PackageSearchResult>>(list => list.Any(p => string.Equals(p.Id, searchTerm, StringComparison.OrdinalIgnoreCase))), // Ensure the correct package is being cached
+            It.IsAny<TimeSpan>(),
+            cancellationToken),
+            Times.Once);
+    }
 }

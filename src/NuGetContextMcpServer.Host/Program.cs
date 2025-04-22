@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Serilog; // Add Serilog using
 using NuGetContextMcpServer.Abstractions.Interfaces; // Updated namespace
 using NuGetContextMcpServer.Application.Services;
 using NuGetContextMcpServer.Infrastructure.Caching;
@@ -9,20 +10,38 @@ using NuGetContextMcpServer.Application.Mcp; // For NuGetTools class - Corrected
 using NuGetContextMcpServer.Infrastructure.NuGet;
 using NuGetContextMcpServer.Infrastructure.Parsing; // For MsBuildInitializer
 
+// Configure Serilog logger first (outside the main try block for startup logging)
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console() // Basic console logging during startup
+    .CreateBootstrapLogger(); // Use bootstrap logger until host is built
+
+Log.Information("Starting NuGet Context MCP Server host setup...");
+
 try // Add top-level try-catch for startup errors
 {
     // --- MSBuild Locator Registration ---
-    // Create a temporary logger factory for the initializer if needed
-    using var initialLoggerFactory = LoggerFactory.Create(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Debug));
-    MsBuildInitializer.EnsureMsBuildRegistered(initialLoggerFactory);
+    // Use Serilog's logger for MSBuild initialization
+    // Create a Microsoft ILogger wrapper around the Serilog bootstrap logger
+    using var serilogLoggerFactory = new Serilog.Extensions.Logging.SerilogLoggerFactory(Log.Logger);
+    MsBuildInitializer.EnsureMsBuildRegistered(serilogLoggerFactory); // Pass the ILoggerFactory instance
     // --- End MSBuild Locator Registration ---
 
     var builder = Host.CreateApplicationBuilder(args);
 
-    // --- Configure Logging (Reads from appsettings.json by default) ---
-    // Default configuration is usually sufficient, reads from appsettings.json
-    // builder.Logging.ClearProviders();
-    // builder.Logging.AddConsole();
+    // --- Configure Serilog ---
+    // Clear default providers and add Serilog via Logging builder
+    builder.Logging.ClearProviders();
+    builder.Logging.AddSerilog(new LoggerConfiguration()
+        .ReadFrom.Configuration(builder.Configuration) // Read base config from appsettings.json
+        .Enrich.FromLogContext()
+        // Explicitly add file sink here as well to ensure it's configured
+        .WriteTo.File(
+            "log-.txt", // Use the same path as in appsettings
+            rollingInterval: RollingInterval.Day, // Use the same rolling interval
+            outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}", // Use the same template
+            retainedFileCountLimit: 7, // Use the same retention
+            buffered: false) // Use the same buffering setting
+        .CreateLogger()); // Create logger instance
 
     // --- Configure Options Pattern ---
     builder.Services.Configure<NuGetSettings>(builder.Configuration.GetSection("NuGetSettings"));
@@ -58,12 +77,16 @@ try // Add top-level try-catch for startup errors
 
     mainLogger.LogInformation("NuGet Context MCP Server shutting down.");
 
+    return 0; // Indicate successful shutdown
 }
 catch (Exception ex)
 {
-    // Log any critical startup errors
-    Console.Error.WriteLine($"FATAL ERROR: Application failed to start. {ex}");
-    // Ensure logs are flushed if using non-console providers
-    await Task.Delay(1000); // Give time for logs to flush potentially
-    Environment.Exit(1); // Exit with non-zero code
+    // Log any critical startup errors using Serilog
+    Log.Fatal(ex, "FATAL ERROR: Application failed to start.");
+    return 1; // Indicate failure
+}
+finally
+{
+    // Ensure logs are flushed regardless of success or failure
+    await Log.CloseAndFlushAsync();
 }

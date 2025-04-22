@@ -1,3 +1,11 @@
 obj/
 bin/
 .idea/
+
+# Log files
+*.log
+
+# SQLite cache files
+nuget_cache.db
+nuget_cache.db-shm
+nuget_cache.db-wal

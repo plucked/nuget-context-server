@@ -48,23 +48,31 @@ public class NuGetClientWrapper : INuGetQueryService
 
     private SourceRepository CreateSourceRepository()
     {
-        PackageSource packageSource = new PackageSource(_settings.QueryFeedUrl);
+        // Ensure the URL points to the V3 index
+        string feedUrl = _settings.QueryFeedUrl;
+        if (!feedUrl.EndsWith("/v3/index.json", StringComparison.OrdinalIgnoreCase))
+        {
+            feedUrl = feedUrl.TrimEnd('/') + "/v3/index.json";
+            _logger.LogDebug("Appending /v3/index.json to QueryFeedUrl for PackageSource: {FeedUrl}", feedUrl);
+        }
+        PackageSource packageSource = new PackageSource(feedUrl);
+
 
         if (!string.IsNullOrEmpty(_settings.PasswordOrPat))
         {
             // Use PAT as password. Username might be required or can be arbitrary.
             string username = string.IsNullOrEmpty(_settings.Username) ? "pat" : _settings.Username;
             packageSource.Credentials = new PackageSourceCredential(
-                source: _settings.QueryFeedUrl,
+                source: feedUrl, // Use the potentially modified feedUrl
                 username: username,
                 passwordText: _settings.PasswordOrPat,
                 isPasswordClearText: true, // PATs are treated as clear text passwords
                 validAuthenticationTypesText: null); // Let NuGet determine auth type
-            _logger.LogInformation("Using configured credentials for feed {FeedUrl}", _settings.QueryFeedUrl);
+            _logger.LogInformation("Using configured credentials for feed {FeedUrl}", feedUrl); // Use modified feedUrl
         }
         else
         {
-            _logger.LogInformation("No credentials configured for feed {FeedUrl}", _settings.QueryFeedUrl);
+            _logger.LogInformation("No credentials configured for feed {FeedUrl}", feedUrl); // Use modified feedUrl
         }
 
         // Register providers (needed for core functionality)

@@ -10,6 +10,6 @@ public record ParsedPackageReference(string Id, string Version);
 
 public interface IProjectParser
 {
-    Task<IEnumerable<ParsedPackageReference>> GetPackageReferencesAsync(string projectPath, CancellationToken cancellationToken);
+    Task<IEnumerable<ParsedPackageReference>> GetPackageReferencesAsync(string projectPath, CancellationToken cancellationToken, IDictionary<string, string>? globalProperties = null);
     // Potentially add methods for other project details if needed later
 }

@@ -54,10 +54,10 @@ public class ProjectAnalysisServiceTests
         _mockLogger = new Mock<ILogger<ProjectAnalysisService>>();
 
         // Default setup for parsers to return empty lists to avoid null refs
-        _mockSolutionParser.Setup(s => s.GetProjectPathsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        _mockSolutionParser.Setup(s => s.GetProjectPathsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())) // It.IsAny is fine here as it's not omitting
                            .ReturnsAsync(new List<string>());
-        // Corrected return type for mock setup
-        _mockProjectParser.Setup(s => s.GetPackageReferencesAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        // Corrected return type for mock setup & added null for globalProperties
+        _mockProjectParser.Setup(s => s.GetPackageReferencesAsync(It.IsAny<string>(), It.IsAny<CancellationToken>(), null))
                           .ReturnsAsync(new List<ParsedPackageReference>());
 
         // Default setup for file existence (can be overridden in tests)
@@ -75,15 +75,17 @@ public class ProjectAnalysisServiceTests
     {
         // Arrange
         var cancellationToken = CancellationToken.None;
+        // Explicitly pass cancellationToken
         _mockSolutionParser.Setup(s => s.GetProjectPathsAsync(ValidSlnPath, cancellationToken))
                            .ReturnsAsync(_projectsInSolution);
-        // Corrected return type for mock setup
-        _mockProjectParser.Setup(s => s.GetPackageReferencesAsync(ValidCsprojPath, cancellationToken))
+        // Corrected return type for mock setup & explicitly pass cancellationToken & null for globalProperties
+        _mockProjectParser.Setup(s => s.GetPackageReferencesAsync(ValidCsprojPath, cancellationToken, null))
                           .ReturnsAsync(_project1Refs as IEnumerable<ParsedPackageReference>);
-        _mockProjectParser.Setup(s => s.GetPackageReferencesAsync(AnotherCsprojPath, cancellationToken))
+        // Explicitly pass cancellationToken & null for globalProperties
+        _mockProjectParser.Setup(s => s.GetPackageReferencesAsync(AnotherCsprojPath, cancellationToken, null))
                           .ReturnsAsync(_project2Refs as IEnumerable<ParsedPackageReference>);
         // Mock NuGet queries needed for aggregation (can be simple mocks for this test)
-         _mockNuGetQueryService.Setup(nq => nq.GetLatestStableVersionAsync(It.IsAny<string>(), cancellationToken)).ReturnsAsync((NuGetVersion?)null);
+         _mockNuGetQueryService.Setup(nq => nq.GetLatestStableVersionAsync(It.IsAny<string>(), cancellationToken)).ReturnsAsync((NuGetVersion?)null); // These are fine
          _mockNuGetQueryService.Setup(nq => nq.GetLatestVersionAsync(It.IsAny<string>(), cancellationToken)).ReturnsAsync((NuGetVersion?)null);
 
 
@@ -91,9 +93,10 @@ public class ProjectAnalysisServiceTests
         await _service.AnalyzeProjectAsync(ValidSlnPath, cancellationToken);
 
         // Assert
+        // Explicitly pass cancellationToken & null for globalProperties in Verify
         _mockSolutionParser.Verify(s => s.GetProjectPathsAsync(ValidSlnPath, cancellationToken), Times.Once);
-        _mockProjectParser.Verify(s => s.GetPackageReferencesAsync(ValidCsprojPath, cancellationToken), Times.Once);
-        _mockProjectParser.Verify(s => s.GetPackageReferencesAsync(AnotherCsprojPath, cancellationToken), Times.Once);
+        _mockProjectParser.Verify(s => s.GetPackageReferencesAsync(ValidCsprojPath, cancellationToken, null), Times.Once);
+        _mockProjectParser.Verify(s => s.GetPackageReferencesAsync(AnotherCsprojPath, cancellationToken, null), Times.Once);
         // Corrected verification: Ensure only the expected paths were called.
         // We already verified the two expected calls happened once.
         // Moq's default behavior (loose) allows other calls. If strict mocking was used, this wouldn't be needed.
@@ -106,19 +109,20 @@ public class ProjectAnalysisServiceTests
     {
         // Arrange
         var cancellationToken = CancellationToken.None;
-        // Corrected return type for mock setup
-        _mockProjectParser.Setup(s => s.GetPackageReferencesAsync(ValidCsprojPath, cancellationToken))
+        // Corrected return type for mock setup & explicitly pass cancellationToken & null for globalProperties
+        _mockProjectParser.Setup(s => s.GetPackageReferencesAsync(ValidCsprojPath, cancellationToken, null))
                           .ReturnsAsync(_project1Refs as IEnumerable<ParsedPackageReference>);
         // Mock NuGet queries needed for aggregation
-         _mockNuGetQueryService.Setup(nq => nq.GetLatestStableVersionAsync(It.IsAny<string>(), cancellationToken)).ReturnsAsync((NuGetVersion?)null);
+         _mockNuGetQueryService.Setup(nq => nq.GetLatestStableVersionAsync(It.IsAny<string>(), cancellationToken)).ReturnsAsync((NuGetVersion?)null); // Fine
          _mockNuGetQueryService.Setup(nq => nq.GetLatestVersionAsync(It.IsAny<string>(), cancellationToken)).ReturnsAsync((NuGetVersion?)null);
 
         // Act
         await _service.AnalyzeProjectAsync(ValidCsprojPath, cancellationToken);
 
         // Assert
+        // Explicitly pass cancellationToken & null for globalProperties in Verify
         _mockSolutionParser.Verify(s => s.GetProjectPathsAsync(It.IsAny<string>(), cancellationToken), Times.Never); // Solution parser not called
-        _mockProjectParser.Verify(s => s.GetPackageReferencesAsync(ValidCsprojPath, cancellationToken), Times.Once);
+        _mockProjectParser.Verify(s => s.GetPackageReferencesAsync(ValidCsprojPath, cancellationToken, null), Times.Once);
     }
 
     [Test]
@@ -132,11 +136,12 @@ public class ProjectAnalysisServiceTests
 
         // Assert
         Assert.That(results, Is.Empty);
+        // Explicitly pass cancellationToken & null for globalProperties in Verify
         _mockSolutionParser.Verify(s => s.GetProjectPathsAsync(It.IsAny<string>(), cancellationToken), Times.Never);
-        _mockProjectParser.Verify(s => s.GetPackageReferencesAsync(It.IsAny<string>(), cancellationToken), Times.Never);
+        _mockProjectParser.Verify(s => s.GetPackageReferencesAsync(It.IsAny<string>(), cancellationToken, null), Times.Never);
         _mockLogger.Verify(
            x => x.Log(
-               It.Is<LogLevel>(l => l == LogLevel.Error),
+               It.Is<LogLevel>(l => l == LogLevel.Error), // Logger Verify might still be an issue, but let's fix parsers first
                It.IsAny<EventId>(),
                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Invalid file type provided. Path must end with .sln or .csproj: {InvalidPath}")), // Match actual log message
                null, // No exception expected here
@@ -158,11 +163,12 @@ public class ProjectAnalysisServiceTests
 
         // Assert
         Assert.That(results, Is.Empty);
+        // Explicitly pass cancellationToken & null for globalProperties in Verify
         _mockSolutionParser.Verify(s => s.GetProjectPathsAsync(NonExistentPath, cancellationToken), Times.Once);
-        _mockProjectParser.Verify(s => s.GetPackageReferencesAsync(It.IsAny<string>(), cancellationToken), Times.Never);
+        _mockProjectParser.Verify(s => s.GetPackageReferencesAsync(It.IsAny<string>(), cancellationToken, null), Times.Never);
         _mockLogger.Verify(
            x => x.Log(
-               It.Is<LogLevel>(l => l == LogLevel.Error),
+               It.Is<LogLevel>(l => l == LogLevel.Error), // Logger Verify might still be an issue
                It.IsAny<EventId>(),
                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Error during analysis for path: {NonExistentPath}")), // Match actual log message format
                It.IsAny<FileNotFoundException>(), // Expecting FileNotFoundException
@@ -175,8 +181,8 @@ public class ProjectAnalysisServiceTests
     {
         // Arrange
         var cancellationToken = CancellationToken.None;
-        // Corrected return type for mock setup
-        _mockProjectParser.Setup(s => s.GetPackageReferencesAsync(ValidCsprojPath, cancellationToken))
+        // Corrected return type for mock setup & explicitly pass cancellationToken & null for globalProperties
+        _mockProjectParser.Setup(s => s.GetPackageReferencesAsync(ValidCsprojPath, cancellationToken, null))
                           .ReturnsAsync(_project1Refs as IEnumerable<ParsedPackageReference>); // Newtonsoft.Json, Microsoft.Extensions.Logging
 
         // Mock NuGet queries
@@ -189,13 +195,14 @@ public class ProjectAnalysisServiceTests
         await _service.AnalyzeProjectAsync(ValidCsprojPath, cancellationToken);
 
         // Assert
-        _mockProjectParser.Verify(s => s.GetPackageReferencesAsync(ValidCsprojPath, cancellationToken), Times.Once);
-        _mockNuGetQueryService.Verify(nq => nq.GetLatestStableVersionAsync("Newtonsoft.Json", cancellationToken), Times.Once);
-        _mockNuGetQueryService.Verify(nq => nq.GetLatestVersionAsync("Newtonsoft.Json", cancellationToken), Times.Once);
-        _mockNuGetQueryService.Verify(nq => nq.GetLatestStableVersionAsync("Microsoft.Extensions.Logging", cancellationToken), Times.Once);
-        _mockNuGetQueryService.Verify(nq => nq.GetLatestVersionAsync("Microsoft.Extensions.Logging", cancellationToken), Times.Once);
-        _mockNuGetQueryService.Verify(nq => nq.GetLatestStableVersionAsync(It.IsNotIn("Newtonsoft.Json", "Microsoft.Extensions.Logging"), cancellationToken), Times.Never);
-        _mockNuGetQueryService.Verify(nq => nq.GetLatestVersionAsync(It.IsNotIn("Newtonsoft.Json", "Microsoft.Extensions.Logging"), cancellationToken), Times.Never);
+        // Explicitly pass cancellationToken & null for globalProperties in Verify
+        _mockProjectParser.Verify(s => s.GetPackageReferencesAsync(ValidCsprojPath, cancellationToken, null), Times.Once);
+        _mockNuGetQueryService.Verify(nq => nq.GetLatestStableVersionAsync("Newtonsoft.Json", cancellationToken), Times.Once); // Fine
+        _mockNuGetQueryService.Verify(nq => nq.GetLatestVersionAsync("Newtonsoft.Json", cancellationToken), Times.Once); // Fine
+        _mockNuGetQueryService.Verify(nq => nq.GetLatestStableVersionAsync("Microsoft.Extensions.Logging", cancellationToken), Times.Once); // Fine
+        _mockNuGetQueryService.Verify(nq => nq.GetLatestVersionAsync("Microsoft.Extensions.Logging", cancellationToken), Times.Once); // Fine
+        _mockNuGetQueryService.Verify(nq => nq.GetLatestStableVersionAsync(It.IsNotIn("Newtonsoft.Json", "Microsoft.Extensions.Logging"), cancellationToken), Times.Never); // Fine
+        _mockNuGetQueryService.Verify(nq => nq.GetLatestVersionAsync(It.IsNotIn("Newtonsoft.Json", "Microsoft.Extensions.Logging"), cancellationToken), Times.Never); // Fine
     }
 
     [Test]
@@ -203,12 +210,14 @@ public class ProjectAnalysisServiceTests
     {
         // Arrange
         var cancellationToken = CancellationToken.None;
+        // Explicitly pass cancellationToken
         _mockSolutionParser.Setup(s => s.GetProjectPathsAsync(ValidSlnPath, cancellationToken))
                            .ReturnsAsync(_projectsInSolution);
-        // Corrected return type for mock setup
-        _mockProjectParser.Setup(s => s.GetPackageReferencesAsync(ValidCsprojPath, cancellationToken))
+        // Corrected return type for mock setup & explicitly pass cancellationToken & null for globalProperties
+        _mockProjectParser.Setup(s => s.GetPackageReferencesAsync(ValidCsprojPath, cancellationToken, null))
                           .ReturnsAsync(_project1Refs as IEnumerable<ParsedPackageReference>); // Json 12.0.0, Logging [6.0.0, )
-        _mockProjectParser.Setup(s => s.GetPackageReferencesAsync(AnotherCsprojPath, cancellationToken))
+        // Explicitly pass cancellationToken & null for globalProperties
+        _mockProjectParser.Setup(s => s.GetPackageReferencesAsync(AnotherCsprojPath, cancellationToken, null))
                           .ReturnsAsync(_project2Refs as IEnumerable<ParsedPackageReference>); // Json 13.0.1, Moq 4.18.0
 
         // Mock NuGet queries
@@ -256,15 +265,17 @@ public class ProjectAnalysisServiceTests
         var parserException = new FormatException("Invalid project file");
         var queryException = new HttpRequestException("NuGet API unreachable");
 
-        _mockProjectParser.Setup(s => s.GetPackageReferencesAsync(ValidCsprojPath, cancellationToken))
+        // Explicitly pass cancellationToken & null for globalProperties
+        _mockProjectParser.Setup(s => s.GetPackageReferencesAsync(ValidCsprojPath, cancellationToken, null))
                           .ThrowsAsync(parserException); // Simulate parser error
 
+        // Explicitly pass cancellationToken
         _mockSolutionParser.Setup(s => s.GetProjectPathsAsync(ValidSlnPath, cancellationToken))
                            .ReturnsAsync(new List<string> { ValidCsprojPath, AnotherCsprojPath }); // Return projects
-        // Corrected return type for mock setup
-         _mockProjectParser.Setup(s => s.GetPackageReferencesAsync(AnotherCsprojPath, cancellationToken))
+        // Corrected return type for mock setup & explicitly pass cancellationToken & null for globalProperties
+         _mockProjectParser.Setup(s => s.GetPackageReferencesAsync(AnotherCsprojPath, cancellationToken, null))
                            .ReturnsAsync(_project2Refs as IEnumerable<ParsedPackageReference>); // Second project parses fine
-         _mockNuGetQueryService.Setup(nq => nq.GetLatestStableVersionAsync("Moq", cancellationToken))
+         _mockNuGetQueryService.Setup(nq => nq.GetLatestStableVersionAsync("Moq", cancellationToken)) // Fine
                                .ThrowsAsync(queryException); // Simulate query error for second project's dep
          _mockNuGetQueryService.Setup(nq => nq.GetLatestVersionAsync("Moq", cancellationToken))
                                .ThrowsAsync(queryException);

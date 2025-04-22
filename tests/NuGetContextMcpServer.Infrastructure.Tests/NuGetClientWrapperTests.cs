@@ -69,14 +69,18 @@ public class NuGetClientWrapperTests
         var searchTerm = "CacheHitSearch";
         var includePrerelease = false;
         var cancellationToken = CancellationToken.None;
+        var skip = 0; // Default skip for test
+        var take = 50; // Default take for test
         var cachedResults = new List<PackageSearchResult> { new("Cached.Package", "1.0.0", "Desc", "Url") };
-        var cacheKey = $"search:{searchTerm.ToLowerInvariant()}:prerel:{includePrerelease}"; // Use lowercase key
+        // Update cache key to include skip and take
+        var cacheKey = $"search:{searchTerm.ToLowerInvariant()}:prerel:{includePrerelease}:skip:{skip}:take:{take}";
 
-        _mockCacheService.Setup(c => c.GetAsync<List<PackageSearchResult>>(cacheKey, cancellationToken)) // Expect List<T>
+        _mockCacheService.Setup(c => c.GetAsync<List<PackageSearchResult>>(cacheKey, cancellationToken))
                          .ReturnsAsync(cachedResults);
 
         // Act
-        var results = await _wrapper.SearchPackagesAsync(searchTerm, includePrerelease, cancellationToken);
+        // Add skip and take arguments
+        var results = await _wrapper.SearchPackagesAsync(searchTerm, includePrerelease, skip, take, cancellationToken);
 
         // Assert
         Assert.That(results, Is.EquivalentTo(cachedResults)); // Use EquivalentTo for collections
@@ -92,10 +96,13 @@ public class NuGetClientWrapperTests
         var searchTerm = "CacheMissSearch";
         var includePrerelease = false;
         var cancellationToken = CancellationToken.None;
-        var cacheKey = $"search:{searchTerm.ToLowerInvariant()}:prerel:{includePrerelease}"; // Use lowercase key
-        List<PackageSearchResult>? nullCache = null; // Expect List<T>
+        var skip = 0; // Default skip for test
+        var take = 50; // Default take for test
+        // Update cache key to include skip and take
+        var cacheKey = $"search:{searchTerm.ToLowerInvariant()}:prerel:{includePrerelease}:skip:{skip}:take:{take}";
+        List<PackageSearchResult>? nullCache = null;
 
-        // Simulate API results (needs mocking of IPackageSearchMetadata if SearchPackagesAsync returns that)
+        // Simulate API results
         // Since our wrapper now returns PackageSearchResult directly, we mock that.
         var apiResults = new List<IPackageSearchMetadata>(); // Mock this if needed
          var apiDtos = new List<PackageSearchResult> { new("Api.Package", "1.0.0", "Api Desc", "Api Url") };
@@ -122,7 +129,8 @@ public class NuGetClientWrapperTests
         // We expect SetAsync to be called *if* the (unmocked) internal API call succeeds.
         try
         {
-            await _wrapper.SearchPackagesAsync(searchTerm, includePrerelease, cancellationToken);
+            // Add skip and take arguments
+            await _wrapper.SearchPackagesAsync(searchTerm, includePrerelease, skip, take, cancellationToken);
         }
         catch (Exception ex)
         {

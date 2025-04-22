@@ -218,15 +218,19 @@ public class NuGetClientCacheIntegrationTests : IntegrationTestBase
         var queryService = GetRequiredService<INuGetQueryService>();
         var cacheService = GetRequiredService<ICacheService>();
         const string searchTerm = "TestPackageA";
-        const bool includePrerelease = true; // Match potential cache key variations
-        string cacheKey = $"search:{searchTerm.ToLowerInvariant()}:prerel:{includePrerelease}";
+        const bool includePrerelease = true;
+        var skip = 0; // Default skip
+        var take = 50; // Default take
+        // Update cache key to include skip and take
+        string cacheKey = $"search:{searchTerm.ToLowerInvariant()}:prerel:{includePrerelease}:skip:{skip}:take:{take}";
 
-        await cacheService.RemoveAsync(cacheKey, CancellationToken.None); // Already awaited, no change needed here
+        await cacheService.RemoveAsync(cacheKey, CancellationToken.None);
         var initialCache = await cacheService.GetAsync<List<PackageSearchResult>>(cacheKey, CancellationToken.None);
         Assert.That(initialCache, Is.Null, "Cache should be empty before the call.");
 
         // Act
-        var results = await queryService.SearchPackagesAsync(searchTerm, includePrerelease, CancellationToken.None);
+        // Add skip and take arguments
+        var results = await queryService.SearchPackagesAsync(searchTerm, includePrerelease, skip, take, CancellationToken.None);
 
         // Assert - Result
         Assert.That(results, Is.Not.Null, "Search results should not be null.");
@@ -246,15 +250,20 @@ public class NuGetClientCacheIntegrationTests : IntegrationTestBase
         var cacheService = GetRequiredService<ICacheService>();
         const string searchTerm = "TestPackageB";
         const bool includePrerelease = true;
-        string cacheKey = $"search:{searchTerm.ToLowerInvariant()}:prerel:{includePrerelease}";
+        var skip = 0; // Default skip
+        var take = 50; // Default take
+        // Update cache key to include skip and take
+        string cacheKey = $"search:{searchTerm.ToLowerInvariant()}:prerel:{includePrerelease}:skip:{skip}:take:{take}";
 
         // Ensure item is in cache
-        await queryService.SearchPackagesAsync(searchTerm, includePrerelease, CancellationToken.None);
+        // Add skip and take arguments
+        await queryService.SearchPackagesAsync(searchTerm, includePrerelease, skip, take, CancellationToken.None);
         var initialCache = await cacheService.GetAsync<List<PackageSearchResult>>(cacheKey, CancellationToken.None);
         Assert.That(initialCache, Is.Not.Null, "Cache should be populated before the second call.");
 
         // Act - Call again
-        var results = await queryService.SearchPackagesAsync(searchTerm, includePrerelease, CancellationToken.None);
+        // Add skip and take arguments
+        var results = await queryService.SearchPackagesAsync(searchTerm, includePrerelease, skip, take, CancellationToken.None);
 
         // Assert
         Assert.That(results, Is.Not.Null, "Search results should not be null on cache hit.");

@@ -1,27 +1,44 @@
 using Microsoft.Extensions.Logging;
 using NuGet.Versioning;
-using NuGetContextMcpServer.Abstractions.Interfaces; // Updated namespace
-using NuGetContextMcpServer.Abstractions.Dtos; // Updated namespace
+using NuGetContextMcpServer.Abstractions.Interfaces;
+using NuGetContextMcpServer.Abstractions.Dtos;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using System; // Added for Exception
+using System;
 
 namespace NuGetContextMcpServer.Application.Services;
 
-public class PackageVersionService : IPackageVersionService // Interface now in Abstractions
+/// <summary>
+/// Provides functionality to retrieve version information for NuGet packages.
+/// </summary>
+public class PackageVersionService : IPackageVersionService
 {
-    private readonly INuGetQueryService _nugetQueryService; // Interface now in Abstractions
+    private readonly INuGetQueryService _nugetQueryService;
     private readonly ILogger<PackageVersionService> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PackageVersionService"/> class.
+    /// </summary>
+    /// <param name="nugetQueryService">The service used to query the NuGet feed.</param>
+    /// <param name="logger">The logger for logging information and errors.</param>
     public PackageVersionService(INuGetQueryService nugetQueryService, ILogger<PackageVersionService> logger)
     {
         _nugetQueryService = nugetQueryService;
         _logger = logger;
     }
 
-    // Return type IEnumerable<string> remains the same
+    /// <summary>
+    /// Gets all available versions for a specific package asynchronously, optionally including pre-release versions.
+    /// </summary>
+    /// <param name="packageId">The ID of the package.</param>
+    /// <param name="includePrerelease">Indicates whether to include pre-release versions.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
+    /// <returns>
+    /// A task that represents the asynchronous operation. The task result contains an enumerable collection
+    /// of version strings, sorted in descending order. Returns an empty collection if an error occurs.
+    /// </returns>
     public async Task<IEnumerable<string>> GetPackageVersionsAsync(string packageId, bool includePrerelease, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Getting versions for package: {PackageId}, IncludePrerelease: {IncludePrerelease}", packageId, includePrerelease);
@@ -34,10 +51,9 @@ public class PackageVersionService : IPackageVersionService // Interface now in 
                 versions = versions.Where(v => !v.IsPrerelease);
             }
 
-            // Order descending by semantic version
             var versionStrings = versions
+                .OrderByDescending(v => v) // Sort NuGetVersion objects directly for accurate semantic version ordering
                 .Select(v => v.ToNormalizedString())
-                .OrderByDescending(v => NuGetVersion.Parse(v)) // Use NuGetVersion for robust sorting
                 .ToList();
 
             _logger.LogInformation("Found {Count} versions for package: {PackageId}", versionStrings.Count, packageId);
@@ -50,7 +66,16 @@ public class PackageVersionService : IPackageVersionService // Interface now in 
         }
     }
 
-    // Changed Mcp.PackageVersionInfo to just PackageVersionInfo (using updated namespace)
+    /// <summary>
+    /// Gets the latest available version (either stable or including pre-release) for a specific package asynchronously.
+    /// </summary>
+    /// <param name="packageId">The ID of the package.</param>
+    /// <param name="includePrerelease">Indicates whether to include pre-release versions when determining the latest.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
+    /// <returns>
+    /// A task that represents the asynchronous operation. The task result contains a <see cref="PackageVersionInfo"/>
+    /// object with the latest version, or null if no version is found or an error occurs.
+    /// </returns>
     public async Task<PackageVersionInfo?> GetLatestPackageVersionAsync(string packageId, bool includePrerelease, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Getting latest version for package: {PackageId}, IncludePrerelease: {IncludePrerelease}", packageId, includePrerelease);

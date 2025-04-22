@@ -35,9 +35,10 @@ public class PackageSearchServiceTests
         var skip = 0;
         var take = 20;
         var cancellationToken = CancellationToken.None;
-        var mockResults = new List<PackageSearchResult>(); // Empty is fine for this verification
+        var mockResults = new List<PackageSearchResult>();
 
-        _mockNuGetQueryService.Setup(s => s.SearchPackagesAsync(searchTerm, includePrerelease, cancellationToken))
+        // Add skip and take to Setup
+        _mockNuGetQueryService.Setup(s => s.SearchPackagesAsync(searchTerm, includePrerelease, skip, take, cancellationToken))
                               .ReturnsAsync(mockResults);
 
         // Act
@@ -45,8 +46,9 @@ public class PackageSearchServiceTests
 
         // Assert
         Assert.That(results, Is.Not.Null);
-        Assert.That(results, Is.Empty); // Expect empty based on mock
-        _mockNuGetQueryService.Verify(s => s.SearchPackagesAsync(searchTerm, includePrerelease, cancellationToken), Times.Once);
+        Assert.That(results, Is.Empty);
+        // Add skip and take to Verify
+        _mockNuGetQueryService.Verify(s => s.SearchPackagesAsync(searchTerm, includePrerelease, skip, take, cancellationToken), Times.Once);
         // Verify logger was NOT called for error
         _mockLogger.Verify(
             x => x.Log(
@@ -69,7 +71,8 @@ public class PackageSearchServiceTests
         var cancellationToken = CancellationToken.None;
         var exception = new InvalidOperationException("NuGet service unavailable");
 
-        _mockNuGetQueryService.Setup(s => s.SearchPackagesAsync(searchTerm, includePrerelease, cancellationToken))
+        // Add skip and take to Setup
+        _mockNuGetQueryService.Setup(s => s.SearchPackagesAsync(searchTerm, includePrerelease, skip, take, cancellationToken))
                               .ThrowsAsync(exception);
 
         // Act
@@ -78,7 +81,8 @@ public class PackageSearchServiceTests
         // Assert
         Assert.That(results, Is.Not.Null);
         Assert.That(results, Is.Empty);
-        _mockNuGetQueryService.Verify(s => s.SearchPackagesAsync(searchTerm, includePrerelease, cancellationToken), Times.Once);
+        // Add skip and take to Verify
+        _mockNuGetQueryService.Verify(s => s.SearchPackagesAsync(searchTerm, includePrerelease, skip, take, cancellationToken), Times.Once);
         // Verify logger was called with Error level
         _mockLogger.Verify(
             x => x.Log(
@@ -100,18 +104,18 @@ public class PackageSearchServiceTests
         var skip = 0;
         var take = 5;
         var cancellationToken = CancellationToken.None;
-        // Corrected type to match INuGetQueryService return type
-        var expectedDtos = new List<PackageSearchResult>(); // Empty list is fine
+        var expectedDtos = new List<PackageSearchResult>();
 
-        _mockNuGetQueryService.Setup(s => s.SearchPackagesAsync(searchTerm, includePrerelease, cancellationToken))
+        // Add skip and take to Setup
+        _mockNuGetQueryService.Setup(s => s.SearchPackagesAsync(searchTerm, includePrerelease, skip, take, cancellationToken))
                               .ReturnsAsync(expectedDtos);
 
         // Act
         await _service.SearchPackagesAsync(searchTerm, includePrerelease, skip, take, cancellationToken);
 
         // Assert
-        // Verify the underlying query service was called with the correct prerelease flag
-        _mockNuGetQueryService.Verify(s => s.SearchPackagesAsync(searchTerm, includePrerelease, cancellationToken), Times.Once);
+        // Verify the underlying query service was called with the correct flags, skip, and take
+        _mockNuGetQueryService.Verify(s => s.SearchPackagesAsync(searchTerm, includePrerelease, skip, take, cancellationToken), Times.Once);
     }
 
     [Test]
@@ -121,20 +125,24 @@ public class PackageSearchServiceTests
         var searchTerm = "SkipTest";
         var includePrerelease = false;
         var skip = 3;
-        var take = 10; // Take more than remaining to ensure skip is the limiter
+        var take = 10;
         var cancellationToken = CancellationToken.None;
+        // Mock should return the results *after* skip/take is applied by the query service
+        var expectedResults = TestSearchResults.Skip(skip).Take(take).ToList();
 
-        _mockNuGetQueryService.Setup(s => s.SearchPackagesAsync(searchTerm, includePrerelease, cancellationToken))
-                              .ReturnsAsync(TestSearchResults); // Returns 10 items
+        // Add skip and take to Setup, return the expected subset
+        _mockNuGetQueryService.Setup(s => s.SearchPackagesAsync(searchTerm, includePrerelease, skip, take, cancellationToken))
+                              .ReturnsAsync(expectedResults);
 
         // Act
         var results = (await _service.SearchPackagesAsync(searchTerm, includePrerelease, skip, take, cancellationToken)).ToList();
 
         // Assert
-        Assert.That(results.Count, Is.EqualTo(7)); // 10 total - 3 skipped = 7
-        Assert.That(results[0].Id, Is.EqualTo("Package3")); // First item should be Package3
-        Assert.That(results[6].Id, Is.EqualTo("Package9")); // Last item should be Package9
-        _mockNuGetQueryService.Verify(s => s.SearchPackagesAsync(searchTerm, includePrerelease, cancellationToken), Times.Once);
+        Assert.That(results.Count, Is.EqualTo(7)); // Service should return what the mock returned
+        Assert.That(results[0].Id, Is.EqualTo("Package3"));
+        Assert.That(results[6].Id, Is.EqualTo("Package9"));
+        // Add skip and take to Verify
+        _mockNuGetQueryService.Verify(s => s.SearchPackagesAsync(searchTerm, includePrerelease, skip, take, cancellationToken), Times.Once);
     }
 
     [Test]
@@ -146,18 +154,22 @@ public class PackageSearchServiceTests
         var skip = 0;
         var take = 4;
         var cancellationToken = CancellationToken.None;
+        // Mock should return the results *after* skip/take is applied by the query service
+        var expectedResults = TestSearchResults.Skip(skip).Take(take).ToList();
 
-        _mockNuGetQueryService.Setup(s => s.SearchPackagesAsync(searchTerm, includePrerelease, cancellationToken))
-                              .ReturnsAsync(TestSearchResults); // Returns 10 items
+        // Add skip and take to Setup, return the expected subset
+        _mockNuGetQueryService.Setup(s => s.SearchPackagesAsync(searchTerm, includePrerelease, skip, take, cancellationToken))
+                              .ReturnsAsync(expectedResults);
 
         // Act
         var results = (await _service.SearchPackagesAsync(searchTerm, includePrerelease, skip, take, cancellationToken)).ToList();
 
         // Assert
-        Assert.That(results.Count, Is.EqualTo(4)); // Should take only 4
-        Assert.That(results[0].Id, Is.EqualTo("Package0")); // First item
-        Assert.That(results[3].Id, Is.EqualTo("Package3")); // Last item
-        _mockNuGetQueryService.Verify(s => s.SearchPackagesAsync(searchTerm, includePrerelease, cancellationToken), Times.Once);
+        Assert.That(results.Count, Is.EqualTo(4)); // Service should return what the mock returned
+        Assert.That(results[0].Id, Is.EqualTo("Package0"));
+        Assert.That(results[3].Id, Is.EqualTo("Package3"));
+        // Add skip and take to Verify
+        _mockNuGetQueryService.Verify(s => s.SearchPackagesAsync(searchTerm, includePrerelease, skip, take, cancellationToken), Times.Once);
     }
 
     [Test]
@@ -169,18 +181,22 @@ public class PackageSearchServiceTests
         var skip = 2;
         var take = 5;
         var cancellationToken = CancellationToken.None;
+        // Mock should return the results *after* skip/take is applied by the query service
+        var expectedResults = TestSearchResults.Skip(skip).Take(take).ToList();
 
-        _mockNuGetQueryService.Setup(s => s.SearchPackagesAsync(searchTerm, includePrerelease, cancellationToken))
-                              .ReturnsAsync(TestSearchResults); // Returns 10 items
+        // Add skip and take to Setup, return the expected subset
+        _mockNuGetQueryService.Setup(s => s.SearchPackagesAsync(searchTerm, includePrerelease, skip, take, cancellationToken))
+                              .ReturnsAsync(expectedResults);
 
         // Act
         var results = (await _service.SearchPackagesAsync(searchTerm, includePrerelease, skip, take, cancellationToken)).ToList();
 
         // Assert
-        Assert.That(results.Count, Is.EqualTo(5)); // Should take 5
-        Assert.That(results[0].Id, Is.EqualTo("Package2")); // First item after skipping 2
-        Assert.That(results[4].Id, Is.EqualTo("Package6")); // Last item (index 2 + 5 - 1 = 6)
-        _mockNuGetQueryService.Verify(s => s.SearchPackagesAsync(searchTerm, includePrerelease, cancellationToken), Times.Once);
+        Assert.That(results.Count, Is.EqualTo(5)); // Service should return what the mock returned
+        Assert.That(results[0].Id, Is.EqualTo("Package2"));
+        Assert.That(results[4].Id, Is.EqualTo("Package6"));
+        // Add skip and take to Verify
+        _mockNuGetQueryService.Verify(s => s.SearchPackagesAsync(searchTerm, includePrerelease, skip, take, cancellationToken), Times.Once);
     }
 
     [Test]
@@ -192,16 +208,20 @@ public class PackageSearchServiceTests
         var skip = 15; // More than available (10)
         var take = 5;
         var cancellationToken = CancellationToken.None;
+        // Mock should return the results *after* skip/take is applied by the query service
+        var expectedResults = TestSearchResults.Skip(skip).Take(take).ToList(); // Should be empty
 
-        _mockNuGetQueryService.Setup(s => s.SearchPackagesAsync(searchTerm, includePrerelease, cancellationToken))
-                              .ReturnsAsync(TestSearchResults); // Returns 10 items
+        // Add skip and take to Setup, return the expected subset (empty list)
+        _mockNuGetQueryService.Setup(s => s.SearchPackagesAsync(searchTerm, includePrerelease, skip, take, cancellationToken))
+                              .ReturnsAsync(expectedResults);
 
         // Act
         var results = (await _service.SearchPackagesAsync(searchTerm, includePrerelease, skip, take, cancellationToken)).ToList();
 
         // Assert
-        Assert.That(results, Is.Empty);
-        _mockNuGetQueryService.Verify(s => s.SearchPackagesAsync(searchTerm, includePrerelease, cancellationToken), Times.Once);
+        Assert.That(results, Is.Empty); // Service should return what the mock returned
+        // Add skip and take to Verify
+        _mockNuGetQueryService.Verify(s => s.SearchPackagesAsync(searchTerm, includePrerelease, skip, take, cancellationToken), Times.Once);
     }
 
     [Test]
@@ -213,15 +233,18 @@ public class PackageSearchServiceTests
         var skip = 0;
         var take = 0;
         var cancellationToken = CancellationToken.None;
+        // Mock should return the results *after* skip/take is applied by the query service
+        var expectedResults = TestSearchResults.Skip(skip).Take(take).ToList(); // Should be empty
 
-        _mockNuGetQueryService.Setup(s => s.SearchPackagesAsync(searchTerm, includePrerelease, cancellationToken))
-                              .ReturnsAsync(TestSearchResults); // Returns 10 items
+        // Add skip and take to Setup, return the expected subset (empty list)
+        _mockNuGetQueryService.Setup(s => s.SearchPackagesAsync(searchTerm, includePrerelease, skip, take, cancellationToken))
+                              .ReturnsAsync(expectedResults);
 
         // Act
         var results = (await _service.SearchPackagesAsync(searchTerm, includePrerelease, skip, take, cancellationToken)).ToList();
 
         // Assert
         Assert.That(results, Is.Empty);
-        _mockNuGetQueryService.Verify(s => s.SearchPackagesAsync(searchTerm, includePrerelease, cancellationToken), Times.Once);
+        _mockNuGetQueryService.Verify(s => s.SearchPackagesAsync(searchTerm, includePrerelease, skip, take, cancellationToken), Times.Once);
     }
 }

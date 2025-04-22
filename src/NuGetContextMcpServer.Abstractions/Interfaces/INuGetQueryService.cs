@@ -10,8 +10,7 @@ namespace NuGetContextMcpServer.Abstractions.Interfaces; // Updated namespace
 
 public interface INuGetQueryService
 {
-    // Changed Dtos.PackageSearchResult to just PackageSearchResult (using updated namespace)
-    Task<IEnumerable<PackageSearchResult>> SearchPackagesAsync(string searchTerm, bool includePrerelease, CancellationToken cancellationToken);
+    Task<IEnumerable<PackageSearchResult>> SearchPackagesAsync(string searchTerm, bool includePrerelease, int skip, int take, CancellationToken cancellationToken);
     Task<IEnumerable<NuGetVersion>> GetAllVersionsAsync(string packageId, CancellationToken cancellationToken);
     Task<NuGetVersion?> GetLatestStableVersionAsync(string packageId, CancellationToken cancellationToken);
     Task<NuGetVersion?> GetLatestVersionAsync(string packageId, CancellationToken cancellationToken); // Includes prerelease

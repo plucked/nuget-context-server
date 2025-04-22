@@ -106,12 +106,13 @@ public class NuGetClientWrapper : INuGetQueryService
         return fetchedItem;
     }
 
-    public async Task<IEnumerable<PackageSearchResult>> SearchPackagesAsync(string searchTerm, bool includePrerelease, CancellationToken cancellationToken)
+    // Updated signature to match INuGetQueryService
+    public async Task<IEnumerable<PackageSearchResult>> SearchPackagesAsync(string searchTerm, bool includePrerelease, int skip, int take, CancellationToken cancellationToken)
     {
-        string cacheKey = $"search:{searchTerm?.ToLowerInvariant()}:prerel:{includePrerelease}";
-        int take = 50; // Limit search results
+        // Include skip and take in the cache key for proper pagination caching
+        string cacheKey = $"search:{searchTerm?.ToLowerInvariant()}:prerel:{includePrerelease}:skip:{skip}:take:{take}";
 
-        // Cache the list of results
+        // Cache the list of results for this specific page
         var results = await GetOrSetCacheAsync<List<PackageSearchResult>>(cacheKey, async () =>
         {
             var searchResource = await _repository.GetResourceAsync<PackageSearchResource>(cancellationToken);
@@ -125,9 +126,9 @@ public class NuGetClientWrapper : INuGetQueryService
             var searchResults = await searchResource.SearchAsync(
                 searchTerm,
                 searchFilter,
-                skip: 0,
-                take: take,
-                _logger.AsNuGetLogger(), // Use NuGet's logger interface
+                skip: skip, // Use the passed skip parameter
+                take: take, // Use the passed take parameter
+                _logger.AsNuGetLogger(),
                 cancellationToken);
 
             // Map to DTO before caching

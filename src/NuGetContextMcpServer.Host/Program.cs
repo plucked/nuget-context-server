@@ -58,6 +58,7 @@ try // Add top-level try-catch for startup errors
     builder.Services.AddSingleton<IProjectAnalysisService, ProjectAnalysisService>();
     builder.Services.AddSingleton<IPackageSearchService, PackageSearchService>();
     builder.Services.AddSingleton<IPackageVersionService, PackageVersionService>();
+    builder.Services.AddSingleton<IPackageMetadataService, PackageMetadataService>(); // Register the new service
 
     // Background Services
     builder.Services.AddHostedService<CacheEvictionService>();

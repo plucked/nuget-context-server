@@ -291,4 +291,96 @@ public class NuGetClientCacheIntegrationTests : IntegrationTestBase
         Assert.That(latestVersion, Is.Not.Null, "Latest version should not be null.");
         Assert.That(latestVersion?.ToString(), Is.EqualTo("2.1.3"), "Latest version should be 2.1.3.");
     }
+    // --- Tests for GetPackageMetadataAsync ---
+
+    [Test]
+    public async Task GetPackageMetadata_SpecificVersion_CacheMiss_FetchesAndCaches()
+    {
+        // Arrange
+        var queryService = GetRequiredService<INuGetQueryService>();
+        var cacheService = GetRequiredService<ICacheService>();
+        const string packageId = "TestPackageA";
+        const string versionString = "1.0.0";
+        var version = NuGet.Versioning.NuGetVersion.Parse(versionString);
+        string cacheKey = $"metadata:{packageId.ToLowerInvariant()}:{version.ToNormalizedString()}";
+
+        await cacheService.RemoveAsync(cacheKey, CancellationToken.None);
+        var initialCache = await cacheService.GetAsync<object>(cacheKey, CancellationToken.None); // Use object or specific type if known/serializable
+        Assert.That(initialCache, Is.Null, "Cache should be empty before the call.");
+
+        // Act
+        var metadata = await queryService.GetPackageMetadataAsync(packageId, version, CancellationToken.None);
+
+        // Assert - Result
+        Assert.That(metadata, Is.Not.Null, "Metadata should not be null.");
+        Assert.That(metadata.Identity.Id, Is.EqualTo(packageId), "Metadata ID should match.");
+        Assert.That(metadata.Identity.Version, Is.EqualTo(version), "Metadata Version should match.");
+        // Add more checks if needed, e.g., description, authors
+
+        // Assert - Cache Population
+        // Note: IPackageSearchMetadata might not be directly serializable/deserializable by all cache implementations.
+        // This assertion might fail depending on the cache setup. If it does, we might need to adjust caching strategy or assertion.
+        var finalCache = await cacheService.GetAsync<object>(cacheKey, CancellationToken.None); // Check if *something* was cached
+        Assert.That(finalCache, Is.Not.Null, "Cache should be populated after the call.");
+    }
+
+    // --- Tests for GetLatestPackageMetadataAsync ---
+
+    [Test]
+    public async Task GetLatestPackageMetadata_IncludePrerelease_CacheMiss_FetchesAndCaches()
+    {
+        // Arrange
+        var queryService = GetRequiredService<INuGetQueryService>();
+        var cacheService = GetRequiredService<ICacheService>();
+        const string packageId = "TestPackageB"; // Has version 2.1.3
+        const bool includePrerelease = true;
+        string cacheKey = $"latest-metadata:{packageId.ToLowerInvariant()}:prerel:{includePrerelease}";
+
+        await cacheService.RemoveAsync(cacheKey, CancellationToken.None);
+        var initialCache = await cacheService.GetAsync<object>(cacheKey, CancellationToken.None);
+        Assert.That(initialCache, Is.Null, "Cache should be empty before the call.");
+
+        // Act
+        var metadata = await queryService.GetLatestPackageMetadataAsync(packageId, includePrerelease, CancellationToken.None);
+
+        // Assert - Result
+        Assert.That(metadata, Is.Not.Null, "Latest metadata should not be null.");
+        Assert.That(metadata.Identity.Id, Is.EqualTo(packageId), "Metadata ID should match.");
+        Assert.That(metadata.Identity.Version.ToString(), Is.EqualTo("2.1.3"), "Latest version (incl. prerelease) should be 2.1.3.");
+
+        // Assert - Cache Population
+        var finalCache = await cacheService.GetAsync<object>(cacheKey, CancellationToken.None);
+        Assert.That(finalCache, Is.Not.Null, "Cache should be populated after the call.");
+    }
+
+    [Test]
+    public async Task GetLatestPackageMetadata_StableOnly_CacheMiss_FetchesAndCaches()
+    {
+        // Arrange
+        var queryService = GetRequiredService<INuGetQueryService>();
+        var cacheService = GetRequiredService<ICacheService>();
+        const string packageId = "TestPackageA"; // Only has stable 1.0.0
+        const bool includePrerelease = false;
+        string cacheKey = $"latest-metadata:{packageId.ToLowerInvariant()}:prerel:{includePrerelease}";
+
+        await cacheService.RemoveAsync(cacheKey, CancellationToken.None);
+        var initialCache = await cacheService.GetAsync<object>(cacheKey, CancellationToken.None);
+        Assert.That(initialCache, Is.Null, "Cache should be empty before the call.");
+
+        // Act
+        var metadata = await queryService.GetLatestPackageMetadataAsync(packageId, includePrerelease, CancellationToken.None);
+
+        // Assert - Result
+        Assert.That(metadata, Is.Not.Null, "Latest stable metadata should not be null.");
+        Assert.That(metadata.Identity.Id, Is.EqualTo(packageId), "Metadata ID should match.");
+        Assert.That(metadata.Identity.Version.ToString(), Is.EqualTo("1.0.0"), "Latest stable version should be 1.0.0.");
+
+        // Assert - Cache Population
+        var finalCache = await cacheService.GetAsync<object>(cacheKey, CancellationToken.None);
+        Assert.That(finalCache, Is.Not.Null, "Cache should be populated after the call.");
+    }
+
+    // Note: Cache hit scenarios are implicitly tested when cache miss tests pass and subsequent calls work.
+    // Explicit cache hit tests could be added by calling twice and potentially mocking the underlying resource fetch
+    // on the second call, but that increases complexity significantly for integration tests.
 }

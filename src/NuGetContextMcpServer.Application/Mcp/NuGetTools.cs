@@ -164,4 +164,41 @@ public static class NuGetTools
              return null;
         }
     }
+    /// <summary>
+    /// Gets detailed metadata for a specific NuGet package ID, optionally for a specific version.
+    /// </summary>
+    /// <param name="packageId">The exact ID of the NuGet package.</param>
+    /// <param name="metadataService">The service responsible for retrieving package metadata.</param>
+    /// <param name="logger">The logger for recording tool execution details and errors.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <param name="version">Optional. The specific package version to retrieve details for. If null or empty, retrieves details for the latest version.</param>
+    /// <returns>
+    /// An asynchronous task that results in a <see cref="PackageDetailInfo"/> object containing the detailed metadata,
+    /// or null if the package or specific version is not found or an error occurs.
+    /// </returns>
+    [McpServerTool]
+    [Description("Gets detailed metadata (description, authors, URLs, etc.) for a specific NuGet package ID, optionally for a specific version.")]
+    public static async Task<PackageDetailInfo?> GetNuGetPackageDetailsAsync(
+        [Description("The exact ID of the NuGet package.")] string packageId,
+        IPackageMetadataService metadataService, // Injected via DI
+        ILogger<NuGetToolLogger> logger,
+        CancellationToken cancellationToken,
+        [Description("Optional. The specific package version (e.g., '1.2.3'). If omitted, fetches details for the latest version.")] string? version = null)
+    {
+        // Treat empty string version same as null
+        string? targetVersion = string.IsNullOrWhiteSpace(version) ? null : version;
+        logger.LogDebug("MCP Tool 'GetNuGetPackageDetailsAsync' invoked for package: {PackageId}, Version: {Version}", packageId, targetVersion ?? "Latest");
+
+        try
+        {
+            // Delegate the actual work to the application service layer
+            return await metadataService.GetPackageDetailsAsync(packageId, targetVersion, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error executing MCP Tool 'GetNuGetPackageDetailsAsync' for package: {PackageId}, Version: {Version}", packageId, targetVersion ?? "Latest");
+            // Return null on error
+            return null;
+        }
+    }
 }

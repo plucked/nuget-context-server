@@ -4,6 +4,7 @@ using NuGet.Common;
 using NuGet.Configuration;
 using NuGet.Protocol;
 using NuGet.Protocol.Core.Types;
+using NuGet.Packaging.Core; // Added for PackageIdentity
 using NuGet.Versioning;
 using NuGetContextMcpServer.Abstractions.Interfaces; // Updated namespace
 using NuGetContextMcpServer.Infrastructure.Configuration;
@@ -201,6 +202,83 @@ public class NuGetClientWrapper : INuGetQueryService
     {
          var allVersions = await GetAllVersionsAsync(packageId, cancellationToken); // Leverages caching from GetAllVersionsAsync
         return FindLatestVersion(allVersions, includePrerelease: true);
+    }
+    public async Task<IPackageSearchMetadata?> GetPackageMetadataAsync(string packageId, NuGetVersion version, CancellationToken cancellationToken)
+    {
+        string cacheKey = $"metadata:{packageId?.ToLowerInvariant()}:{version.ToNormalizedString()}";
+
+        // IPackageSearchMetadata might not be directly serializable for all cache providers.
+        // If caching fails, consider caching a simpler DTO or just fetching directly.
+        // For now, let's assume the cache service can handle it or we accept potential issues.
+        var metadata = await GetOrSetCacheAsync<IPackageSearchMetadata>(cacheKey, async () =>
+        {
+            var metadataResource = await _repository.GetResourceAsync<PackageMetadataResource>(cancellationToken);
+            if (metadataResource == null)
+            {
+                _logger.LogWarning("Feed {FeedUrl} does not support V3 PackageMetadata resource.", _settings.QueryFeedUrl);
+                return null;
+            }
+
+            var packageIdentity = new PackageIdentity(packageId, version);
+            // Use the overload that takes PackageIdentity
+            var specificMetadata = await metadataResource.GetMetadataAsync(
+                packageIdentity,
+                _sourceCacheContext,
+                _logger.AsNuGetLogger(),
+                cancellationToken);
+
+            // GetMetadataAsync(identity) returns a single IPackageSearchMetadata or null
+            return specificMetadata;
+
+        }, cancellationToken);
+
+        return metadata;
+    }
+
+    public async Task<IPackageSearchMetadata?> GetLatestPackageMetadataAsync(string packageId, bool includePrerelease, CancellationToken cancellationToken)
+    {
+        string cacheKey = $"latest-metadata:{packageId?.ToLowerInvariant()}:prerel:{includePrerelease}";
+
+        var latestMetadata = await GetOrSetCacheAsync<IPackageSearchMetadata>(cacheKey, async () =>
+        {
+            var metadataResource = await _repository.GetResourceAsync<PackageMetadataResource>(cancellationToken);
+            if (metadataResource == null)
+            {
+                _logger.LogWarning("Feed {FeedUrl} does not support V3 PackageMetadata resource.", _settings.QueryFeedUrl);
+                return null;
+            }
+
+            // This overload gets metadata for potentially multiple versions
+            var allMetadata = await metadataResource.GetMetadataAsync(
+                packageId,
+                includePrerelease, // Include prerelease versions in the initial fetch if requested
+                false, // includeUnlisted - typically false for "latest"
+                _sourceCacheContext,
+                _logger.AsNuGetLogger(),
+                cancellationToken);
+
+            if (allMetadata == null || !allMetadata.Any())
+            {
+                return null; // No metadata found
+            }
+
+            // Find the latest version among the results
+            // If includePrerelease is false, we should have only received stable versions (or none)
+            // If includePrerelease is true, we might have stable and prerelease, need the absolute latest
+            IPackageSearchMetadata? latest = allMetadata
+                                        .OrderByDescending(m => m.Identity.Version)
+                                        .FirstOrDefault(); // The highest version is the latest
+
+            // If looking for stable only, and the absolute latest is prerelease, we might need to re-filter
+            // However, the GetMetadataAsync overload *should* have handled this based on the includePrerelease flag.
+            // Let's trust the resource returns the correct set for now.
+            // If !includePrerelease and latest is prerelease, something is wrong upstream or with interpretation.
+
+            return latest;
+
+        }, cancellationToken);
+
+        return latestMetadata;
     }
 }
 

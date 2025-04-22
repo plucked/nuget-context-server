@@ -29,12 +29,16 @@ public class PackageMetadataServiceTests
         _service = new PackageMetadataService(_mockNugetQueryService.Object, _mockLogger.Object);
     }
 
-    private Mock<IPackageSearchMetadata> CreateMockMetadata(string id, string version, string? description = "Test Desc", string? authors = "Author", string? projectUrl = "http://project.url", string? licenseUrl = "http://license.url", string? iconUrl = "http://icon.url", string? tags = "tag1 tag2", DateTimeOffset? published = null, bool isListed = true)
+    // Add downloadCount parameter to helper
+    // Add parameters for Title, Summary, RequireLicenseAcceptance
+    private Mock<IPackageSearchMetadata> CreateMockMetadata(string id, string version, string? title = "Test Title", string? description = "Test Desc", string? summary = "Test Summary", string? authors = "Author", string? projectUrl = "http://project.url", string? licenseUrl = "http://license.url", string? iconUrl = "http://icon.url", string? tags = "tag1 tag2", DateTimeOffset? published = null, bool isListed = true, long? downloadCount = 12345, bool requireLicenseAcceptance = false)
     {
         var mockMetadata = new Mock<IPackageSearchMetadata>();
         var identity = new NuGet.Packaging.Core.PackageIdentity(id, NuGetVersion.Parse(version));
         mockMetadata.SetupGet(m => m.Identity).Returns(identity);
+        mockMetadata.SetupGet(m => m.Title).Returns(title); // Setup Title
         mockMetadata.SetupGet(m => m.Description).Returns(description);
+        mockMetadata.SetupGet(m => m.Summary).Returns(summary); // Setup Summary
         mockMetadata.SetupGet(m => m.Authors).Returns(authors);
         mockMetadata.SetupGet(m => m.ProjectUrl).Returns(projectUrl != null ? new Uri(projectUrl) : null);
         mockMetadata.SetupGet(m => m.LicenseUrl).Returns(licenseUrl != null ? new Uri(licenseUrl) : null);
@@ -42,6 +46,8 @@ public class PackageMetadataServiceTests
         mockMetadata.SetupGet(m => m.Tags).Returns(tags);
         mockMetadata.SetupGet(m => m.Published).Returns(published ?? DateTimeOffset.UtcNow);
         mockMetadata.SetupGet(m => m.IsListed).Returns(isListed);
+        mockMetadata.SetupGet(m => m.DownloadCount).Returns(downloadCount); // Setup DownloadCount
+        mockMetadata.SetupGet(m => m.RequireLicenseAcceptance).Returns(requireLicenseAcceptance); // Setup RequireLicenseAcceptance
         // Note: DependencySets are harder to mock and not used in the current mapping
         return mockMetadata;
     }
@@ -70,6 +76,10 @@ public class PackageMetadataServiceTests
         Assert.That(result.Description, Is.EqualTo(mockMetadata.Object.Description)); // NUnit syntax
         Assert.That(result.Authors, Is.EqualTo(mockMetadata.Object.Authors)); // NUnit syntax
         Assert.That(result.ProjectUrl, Is.EqualTo(mockMetadata.Object.ProjectUrl?.ToString())); // NUnit syntax
+        Assert.That(result.DownloadCount, Is.EqualTo(mockMetadata.Object.DownloadCount)); // Assert DownloadCount
+        Assert.That(result.Title, Is.EqualTo(mockMetadata.Object.Title)); // Assert Title
+        Assert.That(result.Summary, Is.EqualTo(mockMetadata.Object.Summary)); // Assert Summary
+        Assert.That(result.RequireLicenseAcceptance, Is.EqualTo(mockMetadata.Object.RequireLicenseAcceptance)); // Assert RequireLicenseAcceptance
         _mockNugetQueryService!.Verify(s => s.GetPackageMetadataAsync(packageId, nugetVersion, It.IsAny<CancellationToken>()), Times.Once);
         _mockNugetQueryService!.Verify(s => s.GetLatestPackageMetadataAsync(It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()), Times.Never); // Ensure latest wasn't called
     }
@@ -93,6 +103,10 @@ public class PackageMetadataServiceTests
         Assert.That(result, Is.Not.Null); // NUnit syntax
         Assert.That(result.Id, Is.EqualTo(packageId)); // NUnit syntax
         Assert.That(result.Version, Is.EqualTo(latestVersion)); // NUnit syntax
+        Assert.That(result.DownloadCount, Is.EqualTo(mockMetadata.Object.DownloadCount)); // Assert DownloadCount
+        Assert.That(result.Title, Is.EqualTo(mockMetadata.Object.Title)); // Assert Title
+        Assert.That(result.Summary, Is.EqualTo(mockMetadata.Object.Summary)); // Assert Summary
+        Assert.That(result.RequireLicenseAcceptance, Is.EqualTo(mockMetadata.Object.RequireLicenseAcceptance)); // Assert RequireLicenseAcceptance
         _mockNugetQueryService!.Verify(s => s.GetLatestPackageMetadataAsync(packageId, true, It.IsAny<CancellationToken>()), Times.Once);
         _mockNugetQueryService!.Verify(s => s.GetPackageMetadataAsync(It.IsAny<string>(), It.IsAny<NuGetVersion>(), It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -119,6 +133,10 @@ public class PackageMetadataServiceTests
         Assert.That(result, Is.Not.Null); // NUnit syntax
         Assert.That(result.Id, Is.EqualTo(packageId)); // NUnit syntax
         Assert.That(result.Version, Is.EqualTo(latestStableVersion)); // NUnit syntax
+        Assert.That(result.DownloadCount, Is.EqualTo(mockStableMetadata.Object.DownloadCount)); // Assert DownloadCount
+        Assert.That(result.Title, Is.EqualTo(mockStableMetadata.Object.Title)); // Assert Title
+        Assert.That(result.Summary, Is.EqualTo(mockStableMetadata.Object.Summary)); // Assert Summary
+        Assert.That(result.RequireLicenseAcceptance, Is.EqualTo(mockStableMetadata.Object.RequireLicenseAcceptance)); // Assert RequireLicenseAcceptance
         _mockNugetQueryService!.Verify(s => s.GetLatestPackageMetadataAsync(packageId, true, It.IsAny<CancellationToken>()), Times.Once);
         _mockNugetQueryService!.Verify(s => s.GetLatestPackageMetadataAsync(packageId, false, It.IsAny<CancellationToken>()), Times.Once); // Verify fallback was called
         _mockNugetQueryService!.Verify(s => s.GetPackageMetadataAsync(It.IsAny<string>(), It.IsAny<NuGetVersion>(), It.IsAny<CancellationToken>()), Times.Never);

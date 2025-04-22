@@ -19,9 +19,19 @@ public class PackageDetailInfo
     public required string Version { get; init; }
 
     /// <summary>
+    /// The user-friendly title of the package.
+    /// </summary>
+    public string? Title { get; init; }
+
+    /// <summary>
     /// The package description.
     /// </summary>
     public string? Description { get; init; }
+
+    /// <summary>
+    /// A short summary of the package's purpose.
+    /// </summary>
+    public string? Summary { get; init; }
 
     /// <summary>
     /// The package authors (comma-separated).
@@ -57,6 +67,17 @@ public class PackageDetailInfo
     /// Indicates if the package is listed in search results.
     /// </summary>
     public bool IsListed { get; init; }
+
+    /// <summary>
+    /// The total download count for the package (across all versions, typically).
+    /// Note: The exact meaning (specific version vs. all versions) might depend on the NuGet API endpoint used.
+    /// </summary>
+    public long? DownloadCount { get; init; }
+
+    /// <summary>
+    /// Indicates if the package requires the user to accept the license before installation.
+    /// </summary>
+    public bool RequireLicenseAcceptance { get; init; }
 
     // Consider adding DependencySets later if needed
     // public IEnumerable<PackageDependencyGroup> DependencySets { get; init; } = Enumerable.Empty<PackageDependencyGroup>();

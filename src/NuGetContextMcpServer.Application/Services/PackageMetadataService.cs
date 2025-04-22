@@ -78,14 +78,18 @@ public class PackageMetadataService : IPackageMetadataService
         {
             Id = metadata.Identity.Id,
             Version = metadata.Identity.Version.ToNormalizedString(), // Use normalized string representation
+            Title = metadata.Title, // Add Title
             Description = metadata.Description,
+            Summary = metadata.Summary, // Add Summary
             Authors = metadata.Authors, // Usually a comma-separated string
             ProjectUrl = metadata.ProjectUrl?.ToString(),
             LicenseUrl = metadata.LicenseUrl?.ToString(),
             IconUrl = metadata.IconUrl?.ToString(),
             Tags = metadata.Tags, // Usually a space or comma-separated string
             Published = metadata.Published,
-            IsListed = metadata.IsListed
+            IsListed = metadata.IsListed,
+            DownloadCount = metadata.DownloadCount,
+            RequireLicenseAcceptance = metadata.RequireLicenseAcceptance // Add RequireLicenseAcceptance
             // Note: DependencySets are not directly available on IPackageSearchMetadata easily.
             // Getting full dependency info requires PackageMetadataResource.GetMetadataAsync(identity)
             // which might be a separate, more involved operation if needed later.

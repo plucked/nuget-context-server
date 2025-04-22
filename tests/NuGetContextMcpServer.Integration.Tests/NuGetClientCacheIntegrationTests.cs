@@ -315,6 +315,7 @@ public class NuGetClientCacheIntegrationTests : IntegrationTestBase
         Assert.That(metadata, Is.Not.Null, "Metadata should not be null.");
         Assert.That(metadata.Identity.Id, Is.EqualTo(packageId), "Metadata ID should match.");
         Assert.That(metadata.Identity.Version, Is.EqualTo(version), "Metadata Version should match.");
+        // Assert.That(metadata.DownloadCount, Is.Not.Null, "Download count should not be null."); // Removed: BaGetter likely doesn't provide this via metadata resource
         // Add more checks if needed, e.g., description, authors
 
         // Assert - Cache Population
@@ -347,6 +348,7 @@ public class NuGetClientCacheIntegrationTests : IntegrationTestBase
         Assert.That(metadata, Is.Not.Null, "Latest metadata should not be null.");
         Assert.That(metadata.Identity.Id, Is.EqualTo(packageId), "Metadata ID should match.");
         Assert.That(metadata.Identity.Version.ToString(), Is.EqualTo("2.1.3"), "Latest version (incl. prerelease) should be 2.1.3.");
+        // Assert.That(metadata.DownloadCount, Is.Not.Null, "Download count should not be null."); // Removed: BaGetter likely doesn't provide this via metadata resource
 
         // Assert - Cache Population
         var finalCache = await cacheService.GetAsync<object>(cacheKey, CancellationToken.None);
@@ -374,6 +376,7 @@ public class NuGetClientCacheIntegrationTests : IntegrationTestBase
         Assert.That(metadata, Is.Not.Null, "Latest stable metadata should not be null.");
         Assert.That(metadata.Identity.Id, Is.EqualTo(packageId), "Metadata ID should match.");
         Assert.That(metadata.Identity.Version.ToString(), Is.EqualTo("1.0.0"), "Latest stable version should be 1.0.0.");
+        // Assert.That(metadata.DownloadCount, Is.Not.Null, "Download count should not be null."); // Removed: BaGetter likely doesn't provide this via metadata resource
 
         // Assert - Cache Population
         var finalCache = await cacheService.GetAsync<object>(cacheKey, CancellationToken.None);

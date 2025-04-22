@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Added ExcludeAssets="runtime" as required by Microsoft.Build.Locator -->
+    <PackageReference Include="Microsoft.Build" Version="17.10.4" ExcludeAssets="runtime" />
+    <PackageReference Include="Microsoft.Build.Locator" Version="1.9.1" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.0-preview.3.24172.4" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="9.0.4" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.4" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="9.0.4" />
+    <PackageReference Include="NuGet.Common" Version="6.10.1" />
+    <PackageReference Include="NuGet.Configuration" Version="6.10.1" />
+    <PackageReference Include="NuGet.Credentials" Version="6.10.1" />
+    <PackageReference Include="NuGet.Protocol" Version="6.10.1" />
+    <PackageReference Include="NuGet.Versioning" Version="6.13.2" /> <!-- Updated version to match Abstractions -->
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.4" /> <!-- Added for IHostedService -->
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\NuGetContextMcpServer.Abstractions\NuGetContextMcpServer.Abstractions.csproj" />
+  </ItemGroup>
+
+  <!-- NOTE: ProjectReference to Application added back temporarily for diagnostics -->
+
+</Project>

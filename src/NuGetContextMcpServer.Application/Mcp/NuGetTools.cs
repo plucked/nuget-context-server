@@ -4,7 +4,6 @@ using System.ComponentModel;
 using Microsoft.Extensions.Logging;
 using NuGetContextMcpServer.Abstractions.Interfaces; // Updated namespace
 using NuGetContextMcpServer.Abstractions.Dtos; // Updated namespace
-// Removed using NuGetContextMcpServer.Application.Mcp; as DTOs are now in Abstractions.Dtos
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,9 +15,25 @@ namespace NuGetContextMcpServer.Application.Mcp; // Updated namespace
 /// <summary>Marker class for ILogger category specific to NuGetTools.</summary>
 public class NuGetToolLogger { } // Made public
 
+/// <summary>
+/// Provides MCP server tools related to NuGet package management and analysis.
+/// These tools interact with underlying application services to perform operations.
+/// </summary>
 [McpServerToolType] // Corrected attribute name based on sample
 public static class NuGetTools
 {
+    /// <summary>
+    /// Analyzes a specified .NET solution (.sln) or project (.csproj) file to find its NuGet package dependencies
+    /// and their latest available versions on the configured feed.
+    /// </summary>
+    /// <param name="projectOrSolutionPath">The absolute path to the .sln or .csproj file accessible by the server.</param>
+    /// <param name="analysisService">The service responsible for performing the project analysis.</param>
+    /// <param name="logger">The logger for recording tool execution details and errors.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <returns>
+    /// An asynchronous task that results in an enumeration of <see cref="AnalyzedDependency"/> objects,
+    /// each representing a found dependency and its latest version. Returns an empty enumeration on error.
+    /// </returns>
     [McpServerTool] // Corrected attribute name based on sample
     [Description("Analyzes a specified .NET solution (.sln) or project (.csproj) file to find its NuGet package dependencies and their latest available versions on the configured feed.")]
     public static async Task<IEnumerable<AnalyzedDependency>> AnalyzeProjectDependenciesAsync(
@@ -36,15 +51,27 @@ public static class NuGetTools
         catch (Exception ex)
         {
             logger.LogError(ex, "Error executing MCP Tool 'AnalyzeProjectDependenciesAsync' for path: {Path}", projectOrSolutionPath);
-            // Consider how to report errors via MCP - for now, return empty or let exception propagate if MCP SDK handles it
-            // Changed Mcp.AnalyzedDependency to just AnalyzedDependency (using updated namespace)
+            // Return empty on error as per current design
             return Enumerable.Empty<AnalyzedDependency>();
         }
     }
 
+    /// <summary>
+    /// Searches the configured NuGet feed for packages matching a given search term.
+    /// </summary>
+    /// <param name="searchTerm">The term to search for.</param>
+    /// <param name="searchService">The service responsible for executing the package search.</param>
+    /// <param name="logger">The logger for recording tool execution details and errors.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <param name="includePrerelease">Whether to include pre-release package versions in the search results (default: false).</param>
+    /// <param name="skip">Number of results to skip (for pagination, default: 0).</param>
+    /// <param name="take">Maximum number of results to return (for pagination, default: 20).</param>
+    /// <returns>
+    /// An asynchronous task that results in an enumeration of <see cref="PackageSearchResult"/> objects
+    /// matching the search criteria. Returns an empty enumeration on error.
+    /// </returns>
     [McpServerTool] // Corrected attribute name based on sample
     [Description("Searches the configured NuGet feed for packages matching a given search term.")]
-    // Changed Dtos.PackageSearchResult to just PackageSearchResult (using updated namespace)
     public static async Task<IEnumerable<PackageSearchResult>> SearchNuGetPackagesAsync(
         // Required parameters first
         [Description("The term to search for.")] string searchTerm,
@@ -65,11 +92,23 @@ public static class NuGetTools
          catch (Exception ex)
          {
              logger.LogError(ex, "Error executing MCP Tool 'SearchNuGetPackagesAsync' for term: {SearchTerm}", searchTerm);
-             // Changed Dtos.PackageSearchResult to just PackageSearchResult (using updated namespace)
+             // Return empty on error as per current design
              return Enumerable.Empty<PackageSearchResult>();
          }
      }
  
+     /// <summary>
+     /// Lists all available versions for a specific NuGet package ID from the configured feed.
+     /// </summary>
+     /// <param name="packageId">The exact ID of the NuGet package.</param>
+     /// <param name="includePrerelease">Whether to include pre-release package versions (default: false).</param>
+     /// <param name="versionService">The service responsible for retrieving package versions.</param>
+     /// <param name="logger">The logger for recording tool execution details and errors.</param>
+     /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+     /// <returns>
+     /// An asynchronous task that results in an enumeration of strings, each representing an available version
+     /// for the specified package. Returns an empty enumeration on error.
+     /// </returns>
      [McpServerTool] // Corrected attribute name based on sample
      [Description("Lists all available versions for a specific NuGet package ID from the configured feed.")]
      public static async Task<IEnumerable<string>> GetNuGetPackageVersionsAsync(
@@ -87,13 +126,25 @@ public static class NuGetTools
         catch (Exception ex)
         {
              logger.LogError(ex, "Error executing MCP Tool 'GetNuGetPackageVersionsAsync' for package: {PackageId}", packageId);
+             // Return empty on error as per current design
              return Enumerable.Empty<string>();
         }
     }
 
+    /// <summary>
+    /// Gets the latest version (stable or including pre-release) for a specific NuGet package ID from the configured feed.
+    /// </summary>
+    /// <param name="packageId">The exact ID of the NuGet package.</param>
+    /// <param name="includePrerelease">If true, returns the absolute latest version (including pre-release); otherwise, returns the latest stable version (default: false).</param>
+    /// <param name="versionService">The service responsible for retrieving the latest package version.</param>
+    /// <param name="logger">The logger for recording tool execution details and errors.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <returns>
+    /// An asynchronous task that results in a <see cref="PackageVersionInfo"/> object containing the latest version details,
+    /// or null if the package is not found or an error occurs.
+    /// </returns>
     [McpServerTool] // Corrected attribute name based on sample
     [Description("Gets the latest version (stable or including pre-release) for a specific NuGet package ID from the configured feed.")]
-    // Changed Mcp.PackageVersionInfo to just PackageVersionInfo (using updated namespace)
     public static async Task<PackageVersionInfo?> GetLatestNuGetPackageVersionAsync(
          [Description("The exact ID of the NuGet package.")] string packageId,
          [Description("If true, returns the absolute latest version (including pre-release); otherwise, returns the latest stable version (default: false).")] bool includePrerelease,
@@ -109,7 +160,8 @@ public static class NuGetTools
         catch (Exception ex)
         {
              logger.LogError(ex, "Error executing MCP Tool 'GetLatestNuGetPackageVersionAsync' for package: {PackageId}", packageId);
-             return null; // Return null on error
+             // Return null on error as per current design
+             return null;
         }
     }
 }

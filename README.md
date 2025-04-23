@@ -1,78 +1,101 @@
 # NuGet Context MCP Server
 
-## Project Goal
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-This project aims to develop a C# application that functions as a **Model Context Protocol (MCP) server**. Its primary purpose is to provide context about .NET project dependencies, specifically focusing on NuGet packages, to Large Language Models (LLMs).
+A C# application that functions as a **[Model Context Protocol (MCP)](https://github.com/modelcontextprotocol/) server**, providing context about .NET project dependencies (NuGet packages) to Large Language Models (LLMs) or other development tools.
 
-The server will:
-*   Analyze `.sln` and `.csproj` files to extract NuGet package references.
-*   Interact with NuGet feeds (public or private) to search for packages, retrieve version lists, and get metadata.
-*   Cache NuGet API responses using an embedded **SQLite** database for performance and efficiency.
-*   Expose these capabilities as **MCP tools** callable by LLM agents via **stdio** transport.
+## Overview
+
+This server analyzes .NET solutions (`.sln`) and projects (`.csproj`) to extract NuGet package information. It interacts with NuGet feeds to fetch package details, versions, and metadata, caching results locally using SQLite for improved performance. These capabilities are exposed as tools via the Model Context Protocol (MCP), allowing AI agents or other tools to query NuGet information programmatically.
+
+## Features
+
+The server exposes the following tools via MCP:
+
+*   **`AnalyzeProjectDependencies`**: Analyzes a `.sln` or `.csproj` file to find NuGet dependencies and their latest available versions.
+*   **`SearchNuGetPackages`**: Searches the configured NuGet feed for packages matching a search term, with options for pagination and including pre-release versions.
+*   **`GetNuGetPackageVersions`**: Lists all available versions (stable or pre-release) for a specific package ID.
+*   **`GetLatestNuGetPackageVersion`**: Gets the latest stable or pre-release version string for a specific package ID.
+*   **`GetNuGetPackageDetails`**: Retrieves detailed metadata (description, authors, URLs, etc.) for a specific package ID and optional version.
+
+## Prerequisites
+
+*   **.NET 9 SDK** (or later compatible version)
+
+## Installation & Build
+
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/plucked/nuget-context-server
+    cd nuget-context-server
+    ```
+2.  **Build the server:**
+    ```bash
+    dotnet build --configuration Release
+    ```
+    The main executable will be within the `src/NuGetContextMcpServer.Host/bin/Release/net9.0/` directory (adjust path based on actual build output).
+
+## Usage & Configuration
+
+This server is designed to be run by an MCP client application (like an IDE extension). The client is responsible for starting the server process and communicating with it, typically via standard input/output (stdio).
+
+**Configuration:**
+
+The server uses `appsettings.json` (and environment-specific overrides like `appsettings.Development.json`) located in the `src/NuGetContextMcpServer.Host` directory for configuration:
+
+*   **`NuGetSettings`**:
+    *   `QueryFeedUrl`: The URL of the NuGet v3 feed index (defaults to `https://api.nuget.org/v3/index.json`).
+    *   `Username` (optional): Username for authenticated feeds.
+    *   `PasswordOrPat` (optional): Password or Personal Access Token (PAT) for authenticated feeds.
+*   **`CacheSettings`**:
+    *   `DatabasePath`: Path to the SQLite cache file (defaults to `nuget_cache.db` in the working directory).
+    *   `DefaultExpirationMinutes`: Default cache duration in minutes (defaults to 60).
+*   **Logging:** Configured via Serilog settings in `appsettings.json`. Logs are written to a file by default.
+
+**Example MCP Client Configuration (using stdio):**
+
+An MCP client would typically need configuration similar to this (syntax may vary based on the client):
+
+```json
+{
+  "mcpServers": {
+    "nuget-context": {
+      "command": "dotnet",
+      "args": [
+        "watch",
+        "run",
+        "--non-interactive",
+        "--project",
+        "src/NuGetContextMcpServer.Host/NuGetContextMcpServer.Host.csproj",
+        "--",
+        "--transport", "stdio"
+      ],
+      "cwd": ".",
+      "disabled": false
+    }
+  }
+}
+```
+
+*   **`command`**: The executable to run (`dotnet`).
+*   **`args`**: Arguments passed to the command. Uses `dotnet watch run` for development to automatically restart the server on file changes. The `--transport stdio` argument tells the server to use standard I/O for MCP communication. For production or non-watch scenarios, replace `"watch"` with `"run"` and remove `"--non-interactive"`.
+*   **`cwd`**: The working directory from which the command should be run (usually the repository root).
 
 ## Architecture
 
-The server is built using a layered architecture with the **.NET Generic Host** as the foundation:
-*   **Host Layer:** Manages application lifetime, DI, configuration, and MCP communication.
-*   **Application Layer:** Contains service interfaces and orchestration logic.
-*   **Infrastructure Layer:** Implements concrete details for parsing (using `Microsoft.Build`), NuGet interaction (using `NuGet.Protocol`), caching (using `Microsoft.Data.Sqlite`), and defines the MCP tools.
+The server uses a layered architecture built on the .NET Generic Host:
 
-## Installation (Roocode)
+*   **Host:** Manages application lifetime, Dependency Injection (DI), configuration, logging, and MCP communication setup.
+*   **Application:** Defines service interfaces and contains core application logic and MCP tool definitions.
+*   **Infrastructure:** Provides concrete implementations for:
+    *   NuGet feed interaction (`NuGet.Protocol`).
+    *   Project/Solution parsing (`Microsoft.Build`).
+    *   Caching (`Microsoft.Data.Sqlite`).
 
-To use this MCP server with Roocode:
+## Contributing
 
-1.  **Build the Server:** Ensure the .NET SDK (version specified in `global.json` or latest compatible) is installed. Build the server application by running the following command in the repository root:
-   ```bash
-   dotnet build
-   ```
+Contributions are welcome! Please refer to the [contribution guidelines](CONTRIBUTING.md) for more details.
 
-2.  **Configure Roocode:** Create or edit the project-level MCP configuration file at `.roo/mcp.json` in your workspace root. Add the following server configuration:
+## License
 
-   ```json
-   {
-     "mcpServers": {
-       "nuget-context": {
-         "command": "dotnet",
-         "args": [
-           "run",
-           "--project",
-           "src/NuGetContextMcpServer.Host/NuGetContextMcpServer.Host.csproj",
-           "--", // Separates dotnet run arguments from application arguments
-           "--transport", // Specify the MCP transport mechanism
-           "stdio"        // Use standard input/output for local communication
-         ],
-         "cwd": ".", // Ensure the command runs from the repository root
-         "disabled": false // Ensure the server is enabled
-       }
-       // Add other MCP server configurations here if needed
-     }
-   }
-   ```
-   *   **Note:** This configuration assumes the server application (`NuGetContextMcpServer.Host`) accepts `--transport stdio` command-line arguments. If the server defaults to or only supports STDIO, these arguments might be removable.
-   *   The `cwd` value assumes Roocode is opened with this repository as the root workspace folder.
-
-3.  **Restart Roocode/VS Code:** After saving the `.roo/mcp.json` file, restart VS Code or reload the window to ensure Roocode picks up the new configuration. Roocode should then automatically start the server process when needed.
-
-## Research (`deep-research/`)
-
-This folder contains the initial research documents that informed the technical blueprint and design decisions:
-
-*   `01.md`: Initial blueprint focusing on a C# server with ASP.NET Core Web API.
-*   `02.md`: Introduced optional MCP integration and a recommended project layout.
-*   `03.md`: Shifted focus to an MCP-first architecture using the .NET Generic Host and detailed NUnit/Moq testing strategy.
-*   `04.md`: Evaluated embedded caching options (JSON files, SQLite, LiteDB), recommending SQLite or LiteDB. (Decision made to use SQLite).
-
-## Implementation Plan (`implementation/`)
-
-This folder contains a detailed, step-by-step plan for implementing the server:
-
-*   **`task_01.md`:** Initial Solution and Project Setup (.NET 9, project structure, dependencies).
-*   **`task_02.md`:** Interfaces, Configuration, and MSBuild Initialization (Service contracts, `appsettings.json`, User Secrets, `MsBuildInitializer`).
-*   **`task_03.md`:** Implement Infrastructure Services (Parsing, SQLite Caching, NuGet Client Wrapper).
-*   **`task_04.md`:** Implement Application Services and MCP Tools (Orchestration logic, MCP tool definitions).
-*   **`task_05.md`:** Configure Host, DI, MCP Server, and Cache Eviction (Wiring everything together in `Program.cs`).
-*   **`task_06.md`:** Implement Unit Tests (NUnit & Moq) (Writing tests for application and infrastructure layers).
-
-## Current Status
-
-**Planning Complete.** The architecture is defined, research reviewed, and a detailed implementation plan (Tasks 01-06) is documented. The project is ready to proceed with implementation, starting with Task 01.
+This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.

@@ -36,14 +36,14 @@ public class PackageMetadataServiceTests
         var mockMetadata = new Mock<IPackageSearchMetadata>();
         var identity = new NuGet.Packaging.Core.PackageIdentity(id, NuGetVersion.Parse(version));
         mockMetadata.SetupGet(m => m.Identity).Returns(identity);
-        mockMetadata.SetupGet(m => m.Title).Returns(title); // Setup Title
-        mockMetadata.SetupGet(m => m.Description).Returns(description);
-        mockMetadata.SetupGet(m => m.Summary).Returns(summary); // Setup Summary
-        mockMetadata.SetupGet(m => m.Authors).Returns(authors);
-        mockMetadata.SetupGet(m => m.ProjectUrl).Returns(projectUrl != null ? new Uri(projectUrl) : null);
-        mockMetadata.SetupGet(m => m.LicenseUrl).Returns(licenseUrl != null ? new Uri(licenseUrl) : null);
-        mockMetadata.SetupGet(m => m.IconUrl).Returns(iconUrl != null ? new Uri(iconUrl) : null);
-        mockMetadata.SetupGet(m => m.Tags).Returns(tags);
+        mockMetadata.SetupGet(m => m.Title).Returns(title ?? string.Empty); // Setup Title, handle null
+        mockMetadata.SetupGet(m => m.Description).Returns(description ?? string.Empty); // Handle null
+        mockMetadata.SetupGet(m => m.Summary).Returns(summary ?? string.Empty); // Setup Summary, handle null
+        mockMetadata.SetupGet(m => m.Authors).Returns(authors ?? string.Empty); // Handle null
+        mockMetadata.SetupGet(m => m.ProjectUrl).Returns(projectUrl != null ? new Uri(projectUrl) : null!); // Use null-forgiving operator
+        mockMetadata.SetupGet(m => m.LicenseUrl).Returns(licenseUrl != null ? new Uri(licenseUrl) : null!); // Use null-forgiving operator
+        mockMetadata.SetupGet(m => m.IconUrl).Returns(iconUrl != null ? new Uri(iconUrl) : null!); // Use null-forgiving operator
+        mockMetadata.SetupGet(m => m.Tags).Returns(tags ?? string.Empty); // Handle null
         mockMetadata.SetupGet(m => m.Published).Returns(published ?? DateTimeOffset.UtcNow);
         mockMetadata.SetupGet(m => m.IsListed).Returns(isListed);
         mockMetadata.SetupGet(m => m.DownloadCount).Returns(downloadCount); // Setup DownloadCount

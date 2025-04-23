@@ -8,7 +8,7 @@ using System.IO;
 using System.Text;
 using System.Reflection; // Added for Assembly
 using NuGetContextMcpServer.Abstractions.Interfaces; // Added for parser interfaces
-using NuGetContextMcpServer.Infrastructure.Parsing; // Added for parser implementations
+// Removed duplicate: using NuGetContextMcpServer.Infrastructure.Parsing;
 using Microsoft.Extensions.Logging; // Added for logging configuration
 using System.Threading.Tasks; // Added for async Task
 using NuGet.Protocol; // Added for NuGet.Protocol interaction
@@ -30,14 +30,14 @@ public abstract class IntegrationTestBase
     protected const string TestApiKey = "TEST_KEY"; // API Key for test feed
     private static readonly string _repositoryRoot = FindRepositoryRoot();
     private static readonly string[] _testPackageProjectPaths =
-    {
+    [
         Path.Combine(_repositoryRoot, "tests", "TestPackages", "TestPackageA", "TestPackageA.csproj"),
         Path.Combine(_repositoryRoot, "tests", "TestPackages", "TestPackageB", "TestPackageB.csproj")
-    };
+    ];
     private string? _tempPackDirectory; // Stores path to packed .nupkg files
 
     [OneTimeSetUp]
-    public virtual async Task OneTimeSetUp() // Made virtual and async Task
+    public virtual async Task OneTimeSetUp() // Reverted to async Task for override compatibility
     {
         // CRITICAL: Ensure MSBuild is located and registered before any MSBuild operations
         // This is synchronous, so no await needed here.
@@ -69,9 +69,11 @@ public abstract class IntegrationTestBase
 
         _host = builder.Build();
         ServiceProvider = _host.Services;
-
+ 
         // NOTE: Package setup is now the responsibility of derived classes
         // that require a feed, as the feed URL might be dynamic (e.g., Testcontainers).
+ 
+        await Task.CompletedTask; // Add await to satisfy CS1998
     }
 
     /// <summary>
@@ -87,7 +89,7 @@ public abstract class IntegrationTestBase
 
 
     [OneTimeTearDown]
-    public virtual async Task OneTimeTearDown() // Made virtual and async Task
+    public virtual async Task OneTimeTearDown() // Reverted to async Task for override compatibility
     {
         // NOTE: Package cleanup (temp directory) is handled here,
         // but feed-specific cleanup (like container disposal) is up to derived classes.
@@ -100,6 +102,8 @@ public abstract class IntegrationTestBase
 
         // NOTE: Cache file deletion is now the responsibility of derived classes
         // that configure a specific cache path.
+ 
+        await Task.CompletedTask; // Add await to satisfy CS1998
     }
 
     protected T GetRequiredService<T>() where T : notnull
@@ -163,6 +167,7 @@ public abstract class IntegrationTestBase
             Console.WriteLine($"Pushing package using NuGet.Protocol: {nupkgPath} to {serviceIndexUrl}");
             try
             {
+#pragma warning disable CS0618 // Obsolete overload is used intentionally here. Refactoring to multi-path push is a larger change.
                 await pushResource.Push(
                     packagePath: nupkgPath,
                     symbolSource: null, // No symbols
@@ -174,6 +179,7 @@ public abstract class IntegrationTestBase
                     skipDuplicate: true, // Skip if already exists (useful for re-runs)
                     symbolPackageUpdateResource: null, // Added missing parameter
                     log: nugetLogger);
+#pragma warning restore CS0618
             }
             catch (Exception ex)
             {

@@ -97,7 +97,7 @@ public class NuGetClientCacheIntegrationTests : IntegrationTestBase
 
             // Now that the container is running and URL is known, call the base setup.
             // The base setup will call ConfigureTestHost (above) to apply the dynamic config.
-            base.OneTimeSetUp(); // This builds the host and sets up ServiceProvider
+            await base.OneTimeSetUp(); // Add await
 
             // Now push the test packages to the running container using the base class helper
             Console.WriteLine("Pushing test packages to BaGetter...");
@@ -124,7 +124,7 @@ public class NuGetClientCacheIntegrationTests : IntegrationTestBase
     public override async Task OneTimeTearDown() // NUnit needs Task return type for async teardown
     {
         // Call base teardown first (disposes host, cleans up pack directory)
-        base.OneTimeTearDown(); // Note: Base teardown is now synchronous
+        await base.OneTimeTearDown(); // Add await
 
         // Dispose the container
         if (_bagetContainer != null)

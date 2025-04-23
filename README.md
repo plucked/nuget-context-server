@@ -35,6 +35,21 @@ The server exposes the following tools via MCP:
     ```
     The main executable will be within the `src/NuGetContextMcpServer.Host/bin/Release/net9.0/` directory (adjust path based on actual build output).
 
+## Testing
+
+This project uses **NUnit** for unit and integration testing and **Moq** for mocking dependencies in unit tests.
+
+To run all tests, navigate to the repository root and execute:
+
+```bash
+dotnet test
+```
+
+The test projects are located in the `tests/` directory:
+*   `NuGetContextMcpServer.Application.Tests`: Unit tests for the application layer services.
+*   `NuGetContextMcpServer.Infrastructure.Tests`: Unit tests for the infrastructure layer components (e.g., caching, parsing).
+*   `NuGetContextMcpServer.Integration.Tests`: Integration tests that may interact with actual file systems or potentially external resources (though typically mocked or using local test assets).
+
 ## Usage & Configuration
 
 This server is designed to be run by an MCP client application (like an IDE extension). The client is responsible for starting the server process and communicating with it, typically via standard input/output (stdio).

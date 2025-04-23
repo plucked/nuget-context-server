@@ -1,6 +1,7 @@
 # NuGet Context MCP Server
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![smithery badge](https://smithery.ai/badge/@plucked/nuget-context-server)](https://smithery.ai/server/@plucked/nuget-context-server)
 
 A C# application that functions as a **[Model Context Protocol (MCP)](https://github.com/modelcontextprotocol/) server**, providing context about .NET project dependencies (NuGet packages) to Large Language Models (LLMs) or other development tools.
 

@@ -1,0 +1,30 @@
+# .github/workflows/dotnet-test.yml
+
+name: .NET Test
+
+# Trigger only on pushes to the main branch
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    # Use a Linux runner with Docker pre-installed
+    runs-on: ubuntu-latest
+
+    steps:
+    # Step 1: Get the source code from the repository
+    - name: Check out repository code
+      uses: actions/checkout@v4
+
+    # Step 2: Set up the required .NET 9 SDK environment
+    - name: Setup .NET 9
+      uses: actions/setup-dotnet@v4
+      with:
+        # Explicitly request .NET 9 SDK (latest patch)
+        dotnet-version: '9.0.x'
+
+    # Step 3: Execute the .NET tests (Docker is available on the runner)
+    - name: Run .NET Tests
+      run: dotnet test NuGetContextMcpServer.sln --configuration Release

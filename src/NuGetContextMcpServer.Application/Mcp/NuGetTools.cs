@@ -34,7 +34,7 @@ public static class NuGetTools
     /// </returns>
     [McpServerTool]
     [Description(
-        "Analyzes a specified .NET solution (.sln) or project (.csproj) file to find its NuGet package dependencies and their latest available versions on the configured feed.")]
+        "Analyzes a .NET solution/project file to find its NuGet dependencies and their latest versions. Use this *before* making changes to understand the current state or identify potential updates.")]
     public static async Task<IEnumerable<AnalyzedDependency>> AnalyzeProjectDependenciesAsync(
         [Description("The absolute path to the .sln or .csproj file accessible by the server.")]
         string projectOrSolutionPath,
@@ -71,7 +71,7 @@ public static class NuGetTools
     ///     matching the search criteria. Returns an empty enumeration on error.
     /// </returns>
     [McpServerTool]
-    [Description("Searches the configured NuGet feed for packages matching a given search term.")]
+    [Description("Searches the NuGet feed for packages. Use this to discover packages or *before* installing to verify a package exists.")]
     public static async Task<IEnumerable<PackageSearchResult>> SearchNuGetPackagesAsync(
         [Description("The term to search for.")]
         string searchTerm,
@@ -114,7 +114,7 @@ public static class NuGetTools
     ///     for the specified package. Returns an empty enumeration on error.
     /// </returns>
     [McpServerTool]
-    [Description("Lists all available versions for a specific NuGet package ID from the configured feed.")]
+    [Description("Lists all available versions for a specific NuGet package ID. Use this *before* installing or updating to choose a specific version.")]
     public static async Task<IEnumerable<string>> GetNuGetPackageVersionsAsync(
         [Description("The exact ID of the NuGet package.")]
         string packageId,
@@ -155,7 +155,7 @@ public static class NuGetTools
     /// </returns>
     [McpServerTool]
     [Description(
-        "Gets the latest version (stable or including pre-release) for a specific NuGet package ID from the configured feed.")]
+        "Gets the latest version (stable or pre-release) for a specific NuGet package ID. Use this *before* installing or updating to ensure you use the most recent suitable version.")]
     public static async Task<PackageVersionInfo?> GetLatestNuGetPackageVersionAsync(
         [Description("The exact ID of the NuGet package.")]
         string packageId,
@@ -196,7 +196,7 @@ public static class NuGetTools
     /// </returns>
     [McpServerTool]
     [Description(
-        "Gets detailed metadata (description, authors, URLs, etc.) for a specific NuGet package ID, optionally for a specific version.")]
+        "Gets detailed metadata for a specific NuGet package ID (optionally specific version). Use this *before* installing to verify package details (like dependencies, license) and existence.")]
     public static async Task<PackageDetailInfo?> GetNuGetPackageDetailsAsync(
         [Description("The exact ID of the NuGet package.")]
         string packageId,

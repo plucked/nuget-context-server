@@ -1,16 +1,13 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using NuGet.Protocol.Core.Types;
+using NuGet.Versioning;
 using NuGetContextMcpServer.Abstractions.Dtos;
 using NuGetContextMcpServer.Abstractions.Interfaces;
-using NuGet.Protocol.Core.Types; // Required for IPackageSearchMetadata
-using NuGet.Versioning; // Required for NuGetVersion
 
 namespace NuGetContextMcpServer.Application.Services;
 
 /// <summary>
-/// Service responsible for retrieving detailed metadata for NuGet packages.
+///     Service responsible for retrieving detailed metadata for NuGet packages.
 /// </summary>
 public class PackageMetadataService : IPackageMetadataService
 {
@@ -24,9 +21,11 @@ public class PackageMetadataService : IPackageMetadataService
     }
 
     /// <inheritdoc />
-    public async Task<PackageDetailInfo?> GetPackageDetailsAsync(string packageId, string? version = null, CancellationToken cancellationToken = default)
+    public async Task<PackageDetailInfo?> GetPackageDetailsAsync(string packageId, string? version = null,
+        CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Attempting to get package details for {PackageId}, Version: {Version}", packageId, version ?? "Latest");
+        _logger.LogInformation("Attempting to get package details for {PackageId}, Version: {Version}", packageId,
+            version ?? "Latest");
 
         try
         {
@@ -34,14 +33,16 @@ public class PackageMetadataService : IPackageMetadataService
             if (string.IsNullOrEmpty(version))
             {
                 // If no version specified, get metadata for the latest version (stable or prerelease based on query service impl)
-                 metadata = await _nugetQueryService.GetLatestPackageMetadataAsync(packageId, true, cancellationToken); // Assuming true includes prerelease for "latest"
-                 if (metadata == null)
-                 {
-                     // Maybe try latest stable if latest overall wasn't found? Or just return null.
-                     // Let's try stable as a fallback for now.
-                     _logger.LogDebug("Latest version (including prerelease) not found for {PackageId}, trying latest stable.", packageId);
-                     metadata = await _nugetQueryService.GetLatestPackageMetadataAsync(packageId, false, cancellationToken);
-                 }
+                metadata = await _nugetQueryService.GetLatestPackageMetadataAsync(packageId, true,
+                    cancellationToken);
+                if (metadata == null)
+                {
+                    _logger.LogDebug(
+                        "Latest version (including prerelease) not found for {PackageId}, trying latest stable",
+                        packageId);
+                    metadata = await _nugetQueryService.GetLatestPackageMetadataAsync(packageId, false,
+                        cancellationToken);
+                }
             }
             else
             {
@@ -49,50 +50,48 @@ public class PackageMetadataService : IPackageMetadataService
                 if (!NuGetVersion.TryParse(version, out var nugetVersion))
                 {
                     _logger.LogWarning("Invalid version format provided: {Version}", version);
-                    return null; // Invalid version format
+                    return null; 
                 }
+
                 metadata = await _nugetQueryService.GetPackageMetadataAsync(packageId, nugetVersion, cancellationToken);
             }
 
 
             if (metadata == null)
             {
-                _logger.LogWarning("Package metadata not found for {PackageId}, Version: {Version}", packageId, version ?? "Not Specified");
+                _logger.LogWarning("Package metadata not found for {PackageId}, Version: {Version}", packageId,
+                    version ?? "Not Specified");
                 return null;
             }
 
-            // Map the IPackageSearchMetadata to our PackageDetailInfo DTO
             return MapMetadataToDetailInfo(metadata);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving package details for {PackageId}, Version: {Version}", packageId, version ?? "Latest");
-            return null; // Return null on error
+            _logger.LogError(ex, "Error retrieving package details for {PackageId}, Version: {Version}", packageId,
+                version ?? "Latest");
+            return null; 
         }
     }
 
     private static PackageDetailInfo MapMetadataToDetailInfo(IPackageSearchMetadata metadata)
     {
-        // The Identity property contains both Id and Version
         return new PackageDetailInfo
         {
             Id = metadata.Identity.Id,
-            Version = metadata.Identity.Version.ToNormalizedString(), // Use normalized string representation
-            Title = metadata.Title, // Add Title
+            Version = metadata.Identity.Version.ToNormalizedString(), 
+            Title = metadata.Title,
             Description = metadata.Description,
-            Summary = metadata.Summary, // Add Summary
-            Authors = metadata.Authors, // Usually a comma-separated string
+            Summary = metadata.Summary,
+            Authors = metadata.Authors, 
             ProjectUrl = metadata.ProjectUrl?.ToString(),
             LicenseUrl = metadata.LicenseUrl?.ToString(),
             IconUrl = metadata.IconUrl?.ToString(),
-            Tags = metadata.Tags, // Usually a space or comma-separated string
+            Tags = metadata.Tags, 
             Published = metadata.Published,
             IsListed = metadata.IsListed,
             DownloadCount = metadata.DownloadCount,
-            RequireLicenseAcceptance = metadata.RequireLicenseAcceptance // Add RequireLicenseAcceptance
-            // Note: DependencySets are not directly available on IPackageSearchMetadata easily.
-            // Getting full dependency info requires PackageMetadataResource.GetMetadataAsync(identity)
-            // which might be a separate, more involved operation if needed later.
+            RequireLicenseAcceptance = metadata.RequireLicenseAcceptance
         };
     }
 }

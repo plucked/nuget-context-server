@@ -22,14 +22,14 @@ public class PackageVersionServiceTests
         _service = new PackageVersionService(_mockNuGetQueryService.Object, _mockLogger.Object);
     }
 
-    private static readonly List<NuGetVersion> TestVersions = new()
-    {
+    private static readonly List<NuGetVersion> TestVersions =
+    [
         NuGetVersion.Parse("1.0.0"),
         NuGetVersion.Parse("2.0.0-beta"),
         NuGetVersion.Parse("1.1.0"),
         NuGetVersion.Parse("2.0.0"),
         NuGetVersion.Parse("0.9.0")
-    };
+    ];
 
     [Test]
     public async Task GetPackageVersionsAsync_StableOnly_FiltersPrereleaseAndReturnsSorted()

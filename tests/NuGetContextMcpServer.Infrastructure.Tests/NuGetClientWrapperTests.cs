@@ -136,7 +136,7 @@ public class NuGetClientWrapperTests
         {
              // Ignore exceptions from the actual API call attempt in this test,
              // as we are focused on the cache miss -> SetAsync path trigger.
-             _mockLogger.Object.LogWarning(ex, "Ignoring exception during cache miss test, focusing on cache interaction.");
+             _mockLogger.Object.LogWarning(ex, "Ignoring exception during cache miss test, focusing on cache interaction");
         }
 
         // Assert
@@ -189,7 +189,7 @@ public class NuGetClientWrapperTests
         }
         catch (Exception ex)
         {
-             _mockLogger.Object.LogWarning(ex, "Ignoring exception during cache miss test, focusing on cache interaction.");
+             _mockLogger.Object.LogWarning(ex, "Ignoring exception during cache miss test, focusing on cache interaction");
         }
 
         // Assert

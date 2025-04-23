@@ -24,19 +24,19 @@ public class ProjectAnalysisServiceTests
     private const string InvalidPath = "/path/to/file.txt";
     private const string NonExistentPath = "/path/to/nonexistent.sln";
 
-    private readonly List<string> _projectsInSolution = new() { ValidCsprojPath, AnotherCsprojPath };
+    private readonly List<string> _projectsInSolution = [ValidCsprojPath, AnotherCsprojPath];
 
     // Corrected type to ParsedPackageReference and using string versions
-    private readonly List<ParsedPackageReference> _project1Refs = new()
-    {
+    private readonly List<ParsedPackageReference> _project1Refs =
+    [
         new ParsedPackageReference("Newtonsoft.Json", "12.0.0"),
-        new ParsedPackageReference("Microsoft.Extensions.Logging", "[6.0.0, )") // Version range as string
-    };
-    private readonly List<ParsedPackageReference> _project2Refs = new()
-    {
+        new ParsedPackageReference("Microsoft.Extensions.Logging", "[6.0.0, )")
+    ];
+    private readonly List<ParsedPackageReference> _project2Refs =
+    [
         new ParsedPackageReference("Newtonsoft.Json", "13.0.1"), // Different version
         new ParsedPackageReference("Moq", "4.18.0")
-    };
+    ];
 
     private readonly NuGetVersion _jsonLatestStable = NuGetVersion.Parse("13.0.3");
     private readonly NuGetVersion _jsonLatestPrerelease = NuGetVersion.Parse("14.0.1-beta");

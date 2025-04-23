@@ -1,14 +1,21 @@
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
-using NuGetContextMcpServer.Abstractions.Dtos; // Updated using for DTOs
+using NuGetContextMcpServer.Abstractions.Dtos;
 
-namespace NuGetContextMcpServer.Abstractions.Interfaces; // Updated namespace
+namespace NuGetContextMcpServer.Abstractions.Interfaces;
 
-// Removed placeholder DTO
-
+/// <summary>
+///     Defines the interface for a service that analyzes projects and solutions to identify dependencies.
+/// </summary>
 public interface IProjectAnalysisService
 {
-    // Changed Mcp.AnalyzedDependency to just AnalyzedDependency (using updated namespace)
-    Task<IEnumerable<AnalyzedDependency>> AnalyzeProjectAsync(string projectOrSolutionPath, CancellationToken cancellationToken);
+    /// <summary>
+    ///     Analyzes a project or solution file asynchronously to retrieve its dependencies.
+    /// </summary>
+    /// <param name="projectOrSolutionPath">The full path to the project or solution file.</param>
+    /// <param name="cancellationToken">A token to cancel the asynchronous operation.</param>
+    /// <returns>
+    ///     A task that represents the asynchronous operation. The task result contains an enumerable collection of
+    ///     analyzed dependencies.
+    /// </returns>
+    Task<IEnumerable<AnalyzedDependency>> AnalyzeProjectAsync(string projectOrSolutionPath,
+        CancellationToken cancellationToken);
 }

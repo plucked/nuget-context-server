@@ -1,7 +1,7 @@
-namespace NuGetContextMcpServer.Abstractions.Dtos; // Updated namespace
+namespace NuGetContextMcpServer.Abstractions.Dtos;
 
 /// <summary>
-/// Represents a package found during a search operation.
+///     Represents a package found during a search operation.
 /// </summary>
 /// <param name="Id">The package ID.</param>
 /// <param name="Version">The latest version string (normalized).</param>

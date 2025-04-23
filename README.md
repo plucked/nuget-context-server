@@ -45,6 +45,8 @@ To run all tests, navigate to the repository root and execute:
 dotnet test
 ```
 
+**Note:** Running the integration tests (`NuGetContextMcpServer.Integration.Tests`) requires **Docker** to be installed and running, as they may utilize test containers. You can download Docker Desktop from [here](https://www.docker.com/products/docker-desktop/).
+
 The test projects are located in the `tests/` directory:
 *   `NuGetContextMcpServer.Application.Tests`: Unit tests for the application layer services.
 *   `NuGetContextMcpServer.Infrastructure.Tests`: Unit tests for the infrastructure layer components (e.g., caching, parsing).

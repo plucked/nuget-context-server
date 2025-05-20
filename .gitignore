@@ -9,3 +9,4 @@ bin/
 nuget_cache.db
 nuget_cache.db-shm
 nuget_cache.db-wal
+.roomodes

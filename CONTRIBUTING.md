@@ -19,12 +19,11 @@ First off, thank you for considering contributing! Your help is appreciated.
 1.  **Fork the repository** on GitHub.
 2.  **Clone your fork** locally (`git clone https://github.com/YourUsername/nuget-context-server.git`).
 3.  **Create a new branch** for your changes (`git checkout -b feature/your-feature-name` or `bugfix/issue-description`).
-4.  **Make your changes.** Ensure you adhere to the existing coding style.
-5.  **Build the project** (`dotnet build`) and ensure all tests pass (if applicable - TODO: Add test execution command).
-6.  **Commit your changes** (`git commit -am 'Add some feature'`). Use clear and descriptive commit messages.
-7.  **Push to your branch** (`git push origin feature/your-feature-name`).
-8.  **Open a Pull Request** on the original `plucked/nuget-context-server` repository.
-9.  Clearly describe the changes in the Pull Request description. Link any relevant issues.
+4.  **Make your changes.** Ensure you adhere to the existing coding style. Build the project (`dotnet build`) and ensure all tests pass (`dotnet test`).
+5.  **Commit your changes** (`git commit -am 'Add some feature'`). Use clear and descriptive commit messages.
+6.  **Push to your branch** (`git push origin feature/your-feature-name`).
+7.  **Open a Pull Request** on the original `plucked/nuget-context-server` repository.
+8.  Clearly describe the changes in the Pull Request description. Link any relevant issues.
 
 ## Development Setup
 
@@ -39,6 +38,6 @@ Please try to follow the coding style conventions already present in the codebas
 
 ## Code of Conduct
 
-This project adheres to a Code of Conduct. (TODO: Add a CODE_OF_CONDUCT.md file, potentially based on the Contributor Covenant). By participating, you are expected to uphold this code. Please report unacceptable behavior.
+This project adheres to a Code of Conduct. Please review the [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) file for details. By participating, you are expected to uphold this code. Please report unacceptable behavior.
 
 Thank you for contributing!
